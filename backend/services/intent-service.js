@@ -1,6 +1,12 @@
 import Groq from "groq-sdk";
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+let _groq = null;
+const groq = new Proxy({}, {
+    get: (_, prop) => {
+        if (!_groq) _groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        return _groq[prop];
+    },
+});
 
 const INTENT_SYSTEM_PROMPT = `You are an intent classifier for LUXE, a premium ecommerce store selling electronics, clothing, accessories, jewelry, home products, and fragrances.
 

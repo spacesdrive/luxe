@@ -1,6 +1,12 @@
 import Groq from "groq-sdk";
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+let _groq = null;
+const groq = new Proxy({}, {
+    get: (_, prop) => {
+        if (!_groq) _groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        return _groq[prop];
+    },
+});
 
 const STREAM_MODELS = [
     "llama-3.3-70b-versatile",
