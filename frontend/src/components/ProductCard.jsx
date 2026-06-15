@@ -1,15 +1,16 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import {
-  Card, CardMedia, CardContent, CardActions,
-  Typography, Button, Box, Chip, IconButton, Skeleton,
-  Dialog, DialogTitle, DialogContent, DialogActions,
-} from "@mui/material";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBagShopping, faHeart as faHeartSolid, faXmark } from "@fortawesome/free-solid-svg-icons";
-import { faHeart as faHeartRegular } from "@fortawesome/free-regular-svg-icons";
-import useCartStore from "../store/useCartStore";
-import useAuthStore from "../store/useAuthStore";
+import { useNavigate, Link } from "react-router-dom";
+import { Heart, ShoppingCart, X } from "lucide-react";
+
+import useCartStore from "@/store/useCartStore";
+import useAuthStore from "@/store/useAuthStore";
+
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 export default function ProductCard({ product, compact = false }) {
   const { addToCart } = useCartStore();
@@ -26,6 +27,7 @@ export default function ProductCard({ product, compact = false }) {
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
+    e.preventDefault();
     if (!user) { navigate("/login"); return; }
     if (needsSizeSelection) {
       setPendingSize(null);
@@ -36,265 +38,132 @@ export default function ProductCard({ product, compact = false }) {
   };
 
   const handleConfirmSize = () => {
+    if (!pendingSize) return;
     addToCart(product, pendingSize);
     setSizeDialogOpen(false);
     setPendingSize(null);
   };
 
-  const handleCardClick = () => navigate(`/product/${product._id}`);
-
-  const compactSizeLimit = 3;
-  const normalSizeLimit = 5;
-  const compactShoeSizeLimit = 2;
-  const normalShoeSizeLimit = 4;
-
   return (
     <>
       <Card
-        onClick={handleCardClick}
-        sx={{
-          cursor: "pointer",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        {product.isFeatured && (
-          <Chip
-            label="Featured"
-            size="small"
-            sx={{
-              position: "absolute", top: 8, left: 8, zIndex: 2,
-              background: "linear-gradient(135deg, #C9A84C, #E4C97E)",
-              color: "#0A0A0F", fontWeight: 700,
-              fontSize: compact ? "0.55rem" : "0.62rem",
-              height: compact ? 18 : 24,
-            }}
-          />
+        className={cn(
+          "group overflow-hidden border border-border bg-card transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 cursor-pointer",
+          compact ? "w-full" : "w-full"
         )}
-
-        <IconButton
-          onClick={(e) => { e.stopPropagation(); setWished(!wished); }}
-          sx={{
-            position: "absolute", top: 5, right: 5, zIndex: 2,
-            background: "rgba(10,10,15,0.55)", backdropFilter: "blur(4px)",
-            width: compact ? 24 : 30, height: compact ? 24 : 30,
-            "&:hover": { background: "rgba(10,10,15,0.85)" },
-          }}
-          size="small"
-        >
-          <FontAwesomeIcon
-            icon={wished ? faHeartSolid : faHeartRegular}
-            style={{ fontSize: compact ? 10 : 12, color: wished ? "#E05C5C" : "#9A9BAD" }}
-          />
-        </IconButton>
-
-        <Box sx={{ position: "relative", pt: compact ? "56%" : "75%", background: "#12121A", overflow: "hidden" }}>
-          {!imgLoaded && (
-            <Skeleton variant="rectangular" sx={{ position: "absolute", inset: 0, height: "100%", transform: "none" }} />
-          )}
-          <CardMedia
-            component="img"
-            image={product.image || `https://placehold.co/400x300/1A1A26/C9A84C?text=${encodeURIComponent(product.name)}`}
+        onClick={() => navigate(`/product/${product._id}`)}
+      >
+        <div className={cn("relative overflow-hidden bg-muted", compact ? "h-40" : "h-64")}>
+          {!imgLoaded && <Skeleton className="absolute inset-0 rounded-none" />}
+          <img
+            src={product.image || "/placeholder.jpg"}
             alt={product.name}
+            className={cn(
+              "w-full h-full object-cover transition-transform duration-500 group-hover:scale-105",
+              imgLoaded ? "opacity-100" : "opacity-0"
+            )}
             onLoad={() => setImgLoaded(true)}
-            sx={{
-              position: "absolute", inset: 0, width: "100%", height: "100%",
-              objectFit: "cover",
-              opacity: imgLoaded ? 1 : 0,
-              transition: "opacity 0.3s ease, transform 0.5s ease",
-              "&:hover": { transform: "scale(1.05)" },
-            }}
           />
-        </Box>
-
-        <CardContent sx={{ flex: 1, px: compact ? 1 : 2, pt: compact ? 1 : 1.5, pb: 0.5 }}>
-          <Typography sx={{
-            color: "text.secondary", mb: 0.3,
-            fontSize: compact ? "0.55rem" : "0.6rem",
-            letterSpacing: "0.08em", textTransform: "uppercase",
-          }}>
-            {product.category}
-          </Typography>
-
-          <Typography sx={{
-            fontFamily: '"Cormorant Garamond", serif',
-            fontSize: compact ? "0.82rem" : "0.98rem",
-            fontWeight: 500, color: "text.primary",
-            mb: 0.4, lineHeight: 1.3,
-            display: "-webkit-box", WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical", overflow: "hidden",
-          }}>
-            {product.name}
-          </Typography>
-
-          <Typography sx={{
-            fontSize: compact ? "0.85rem" : "1rem",
-            fontWeight: 700, color: "primary.main",
-            fontFamily: '"Cormorant Garamond", serif',
-          }}>
-            ${product.price?.toFixed(2)}
-          </Typography>
-
-          {hasSizes && (
-            <Box sx={{ mt: compact ? 0.6 : 1, display: "flex", flexWrap: "wrap", gap: compact ? 0.3 : 0.4, alignItems: "center" }}>
-              {product.sizes.slice(0, compact ? compactSizeLimit : normalSizeLimit).map((s) => (
-                <Box key={s} sx={{
-                  px: compact ? 0.6 : 0.8,
-                  py: compact ? 0.15 : 0.2,
-                  border: "1px solid rgba(201,168,76,0.25)",
-                  borderRadius: "2px",
-                  fontSize: compact ? "0.52rem" : "0.58rem",
-                  fontWeight: 600,
-                  color: "text.secondary",
-                  letterSpacing: "0.04em",
-                  lineHeight: 1.6,
-                }}>
-                  {s}
-                </Box>
-              ))}
-              {product.sizes.length > (compact ? compactSizeLimit : normalSizeLimit) && (
-                <Typography sx={{ fontSize: compact ? "0.52rem" : "0.58rem", color: "text.disabled", alignSelf: "center" }}>
-                  +{product.sizes.length - (compact ? compactSizeLimit : normalSizeLimit)} more
-                </Typography>
-              )}
-            </Box>
-          )}
-
-          {hasShoeSizes && (
-            <Box sx={{ mt: compact ? 0.4 : 0.6, display: "flex", flexWrap: "wrap", gap: compact ? 0.3 : 0.4, alignItems: "center" }}>
-              {product.shoeSizes.slice(0, compact ? compactShoeSizeLimit : normalShoeSizeLimit).map((s) => (
-                <Box key={s} sx={{
-                  px: compact ? 0.6 : 0.8,
-                  py: compact ? 0.15 : 0.2,
-                  border: "1px solid rgba(123,94,167,0.3)",
-                  borderRadius: "2px",
-                  fontSize: compact ? "0.52rem" : "0.58rem",
-                  fontWeight: 600,
-                  color: "#A07FCC",
-                  letterSpacing: "0.02em",
-                  lineHeight: 1.6,
-                }}>
-                  {s}
-                </Box>
-              ))}
-              {product.shoeSizes.length > (compact ? compactShoeSizeLimit : normalShoeSizeLimit) && (
-                <Typography sx={{ fontSize: compact ? "0.52rem" : "0.58rem", color: "text.disabled", alignSelf: "center" }}>
-                  +{product.shoeSizes.length - (compact ? compactShoeSizeLimit : normalShoeSizeLimit)} more
-                </Typography>
-              )}
-            </Box>
-          )}
-        </CardContent>
-
-        <CardActions sx={{ px: compact ? 1 : 2, pb: compact ? 1 : 2, pt: 0.5 }}>
-          <Button
-            fullWidth variant="contained"
-            size="small"
-            onClick={handleAddToCart}
-            startIcon={<FontAwesomeIcon icon={faBagShopping} style={{ fontSize: compact ? "0.6rem" : "0.7rem" }} />}
-            sx={{ fontSize: compact ? "0.6rem" : "0.68rem", py: compact ? 0.5 : 0.9 }}
+          {/* Overlays */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setWished(!wished); }}
+            className="absolute top-2 right-2 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
           >
-            Add to Cart
-          </Button>
-        </CardActions>
+            <Heart className={cn("h-4 w-4", wished ? "fill-red-500 text-red-500" : "text-foreground")} />
+          </button>
+          {product.isFeatured && (
+            <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px]">
+              Featured
+            </Badge>
+          )}
+        </div>
+
+        <CardContent className={cn("p-4", compact && "p-3")}>
+          <p className="text-xs text-muted-foreground mb-1">{product.category}</p>
+          <p className={cn("font-semibold line-clamp-2 mb-2 leading-snug", compact ? "text-sm" : "text-base")}>
+            {product.name}
+          </p>
+
+          {!compact && (hasSizes || hasShoeSizes) && (
+            <div className="flex flex-wrap gap-1 mb-3">
+              {(hasSizes ? product.sizes : product.shoeSizes).slice(0, 4).map((s) => (
+                <Badge key={s} variant="outline" className="text-[10px] px-1.5 py-0">
+                  {s}
+                </Badge>
+              ))}
+              {((hasSizes ? product.sizes : product.shoeSizes).length > 4) && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                  +{(hasSizes ? product.sizes : product.shoeSizes).length - 4}
+                </Badge>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-primary font-bold font-heading text-lg">
+              ${product.price?.toFixed(2)}
+            </span>
+            <Button
+              size="sm"
+              className="shrink-0"
+              onClick={handleAddToCart}
+            >
+              <ShoppingCart className="h-3.5 w-3.5 mr-1.5" />
+              {compact ? "Add" : "Add to Cart"}
+            </Button>
+          </div>
+        </CardContent>
       </Card>
 
-      <Dialog
-        open={sizeDialogOpen}
-        onClose={() => setSizeDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        onClick={(e) => e.stopPropagation()}
-        PaperProps={{ sx: { background: "#12121A", border: "1px solid rgba(201,168,76,0.12)", borderRadius: "6px" } }}
-      >
-        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1 }}>
-          <Typography sx={{ fontFamily: '"Cormorant Garamond", serif', fontSize: "1.2rem", color: "text.primary" }}>
-            Select a Size
-          </Typography>
-          <IconButton onClick={() => setSizeDialogOpen(false)} size="small" sx={{ color: "text.secondary" }}>
-            <FontAwesomeIcon icon={faXmark} style={{ fontSize: 14 }} />
-          </IconButton>
-        </DialogTitle>
-
-        <DialogContent sx={{ pt: 1 }}>
-          {hasSizes && (
-            <Box sx={{ mb: hasShoeSizes ? 2.5 : 0 }}>
-              {hasShoeSizes && (
-                <Typography sx={{ color: "text.disabled", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", mb: 1 }}>
-                  Clothing
-                </Typography>
-              )}
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                {product.sizes.map((s) => (
-                  <Box
-                    key={s}
-                    onClick={() => setPendingSize(s)}
-                    sx={{
-                      px: 2, py: 0.8,
-                      border: pendingSize === s ? "1px solid #C9A84C" : "1px solid rgba(201,168,76,0.25)",
-                      borderRadius: "3px", cursor: "pointer",
-                      background: pendingSize === s ? "rgba(201,168,76,0.12)" : "transparent",
-                      color: pendingSize === s ? "#C9A84C" : "text.secondary",
-                      fontSize: "0.8rem", fontWeight: 600,
-                      transition: "all 0.15s",
-                      "&:hover": { borderColor: "#C9A84C", color: "#C9A84C" },
-                    }}
-                  >
-                    {s}
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-          )}
-
-          {hasShoeSizes && (
-            <Box>
-              {hasSizes && (
-                <Typography sx={{ color: "text.disabled", fontSize: "0.68rem", letterSpacing: "0.1em", textTransform: "uppercase", mb: 1 }}>
-                  Shoe Size
-                </Typography>
-              )}
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                {product.shoeSizes.map((s) => (
-                  <Box
-                    key={s}
-                    onClick={() => setPendingSize(s)}
-                    sx={{
-                      px: 2, py: 0.8,
-                      border: pendingSize === s ? "1px solid #7B5EA7" : "1px solid rgba(123,94,167,0.25)",
-                      borderRadius: "3px", cursor: "pointer",
-                      background: pendingSize === s ? "rgba(123,94,167,0.12)" : "transparent",
-                      color: pendingSize === s ? "#A07FCC" : "text.secondary",
-                      fontSize: "0.8rem", fontWeight: 600,
-                      transition: "all 0.15s",
-                      "&:hover": { borderColor: "#7B5EA7", color: "#A07FCC" },
-                    }}
-                  >
-                    {s}
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-          )}
+      {/* Size selection dialog */}
+      <Dialog open={sizeDialogOpen} onOpenChange={setSizeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select a Size</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {hasSizes && (
+              <div>
+                <p className="text-sm font-medium mb-2 text-muted-foreground">Clothing Size</p>
+                <div className="flex flex-wrap gap-2">
+                  {product.sizes.map((size) => (
+                    <Button
+                      key={size}
+                      variant={pendingSize === size ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPendingSize(size)}
+                    >
+                      {size}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {hasShoeSizes && (
+              <div>
+                <p className="text-sm font-medium mb-2 text-muted-foreground">Shoe Size</p>
+                <div className="flex flex-wrap gap-2">
+                  {product.shoeSizes.map((size) => (
+                    <Button
+                      key={size}
+                      variant={pendingSize === size ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPendingSize(size)}
+                    >
+                      {size}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setSizeDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleConfirmSize} disabled={!pendingSize}>
+              Add to Cart
+            </Button>
+          </DialogFooter>
         </DialogContent>
-
-        <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
-          <Button variant="outlined" size="small" onClick={() => setSizeDialogOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            disabled={!pendingSize}
-            onClick={handleConfirmSize}
-            startIcon={<FontAwesomeIcon icon={faBagShopping} style={{ fontSize: 11 }} />}
-          >
-            Add to Cart
-          </Button>
-        </DialogActions>
       </Dialog>
     </>
   );
