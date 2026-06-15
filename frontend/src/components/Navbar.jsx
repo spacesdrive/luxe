@@ -1,297 +1,197 @@
 import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useTheme } from "next-themes";
 import {
-  AppBar, Toolbar, Box, Typography, IconButton, Badge,
-  Button, Menu, MenuItem, Divider, Drawer, List, ListItem,
-  ListItemText, useScrollTrigger, Slide, Avatar,
-} from "@mui/material";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+  ShoppingCart, Sun, Moon, LogOut, LayoutDashboard, Menu
+} from "lucide-react";
+
+import useAuthStore from "@/store/useAuthStore";
+import useCartStore from "@/store/useCartStore";
+
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import {
-  faBagShopping, faGem, faBars, faXmark,
-  faRightFromBracket, faUserShield,
-  faMicrochip, faShirt, faBriefcase, faRing, faCouch, faSprayCan,
-} from "@fortawesome/free-solid-svg-icons";
-import useAuthStore from "../store/useAuthStore";
-import useCartStore from "../store/useCartStore";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ThemeToggleCircular } from "@/components/ui/theme-toggle-circular";
+import { cn } from "@/lib/utils";
 
-const CATEGORIES = [
-  { label: "Electronics", icon: faMicrochip, path: "electronics" },
-  { label: "Clothing", icon: faShirt, path: "clothing" },
-  { label: "Accessories", icon: faBriefcase, path: "accessories" },
-  { label: "Jewelry", icon: faRing, path: "jewelry" },
-  { label: "Homes", icon: faCouch, path: "home" },
-  { label: "Fragrance", icon: faSprayCan, path: "fragrance" },
-];
-
-function HideOnScroll({ children }) {
-  const trigger = useScrollTrigger();
-  return <Slide appear={false} direction="down" in={!trigger}>{children}</Slide>;
-}
+const CATEGORIES = ["Electronics", "Clothing", "Accessories", "Jewelry", "Home", "Fragrance"];
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
   const { cart } = useCartStore();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0);
+  const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    document.documentElement.classList.toggle("dark", next === "dark");
+    setTheme(next);
+  };
 
   const handleLogout = async () => {
-    setAnchorEl(null);
     await logout();
     navigate("/");
   };
 
-  const isActive = (path) =>
-    path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
-
-  const navLinkSx = (path) => ({
-    color: isActive(path) ? "primary.main" : "text.secondary",
-    fontSize: "0.68rem",
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-    fontWeight: 600,
-    position: "relative",
-    px: 1,
-    py: 0.5,
-    minWidth: 0,
-    transition: "color 0.2s",
-    "&:hover": { color: "primary.main" },
-    "&::after": {
-      content: '""',
-      position: "absolute",
-      bottom: -2,
-      left: "50%",
-      transform: isActive(path) ? "translateX(-50%) scaleX(1)" : "translateX(-50%) scaleX(0)",
-      width: "calc(100% - 16px)",
-      height: "1px",
-      background: "linear-gradient(90deg, transparent, #C9A84C, transparent)",
-      transition: "transform 0.3s ease",
-    },
-    "&:hover::after": { transform: "translateX(-50%) scaleX(1)" },
-  });
+  const navLinkClass = ({ isActive }) =>
+    cn(
+      "text-sm font-medium transition-colors hover:text-primary relative pb-0.5",
+      isActive
+        ? "text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-primary"
+        : "text-muted-foreground"
+    );
 
   return (
-    <>
-      <HideOnScroll>
-        <AppBar position="fixed" elevation={0}>
-          <Toolbar sx={{ px: { xs: 2, md: 4 }, minHeight: { xs: 64, md: 72 } }}>
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md transform-gpu">
+      <nav className="container mx-auto flex h-16 items-center justify-between px-4 lg:px-6">
 
-            <IconButton
-              sx={{ display: { md: "none" }, color: "text.secondary", mr: 1 }}
-              onClick={() => setDrawerOpen(true)}
-            >
-              <FontAwesomeIcon icon={faBars} style={{ fontSize: 18 }} />
-            </IconButton>
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2.5 shrink-0">
+          <img
+            src="/favicon.jpg"
+            alt="Luxe"
+            className="h-8 w-8 rounded-full object-cover ring-2 ring-primary/30"
+          />
+          <span className="font-heading text-xl font-semibold tracking-wide">Luxe</span>
+        </Link>
 
-            <Box
-              component={Link}
-              to="/"
-              sx={{ display: "flex", alignItems: "center", gap: 1, textDecoration: "none", mr: { md: 3 } }}
-            >
-              <FontAwesomeIcon icon={faGem} style={{ fontSize: 18, color: "#C9A84C" }} />
-              <Typography
-                sx={{
-                  fontFamily: '"Cormorant Garamond", serif',
-                  fontSize: { xs: "1.4rem", md: "1.55rem" },
-                  fontWeight: 600,
-                  letterSpacing: "0.1em",
-                  color: "text.primary",
-                  lineHeight: 1,
-                }}
-              >
-                LUXE
-              </Typography>
-            </Box>
+        {/* Desktop Nav */}
+        <div className="hidden md:flex items-center gap-6">
+          <NavLink to="/" end className={navLinkClass}>Home</NavLink>
+          <NavLink to="/shop" className={navLinkClass}>Shop</NavLink>
+        </div>
 
-            <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 0, flex: 1 }}>
-              <Button component={Link} to="/" sx={navLinkSx("/")}>Home</Button>
-              {CATEGORIES.map((cat) => (
-                <Button
-                  key={cat.path}
-                  component={Link}
-                  to={`/shop/${cat.path}`}
-                  sx={navLinkSx(`/shop/${cat.path}`)}
-                >
-                  {cat.label}
-                </Button>
-              ))}
-            </Box>
+        {/* Right actions */}
+        <div className="flex items-center gap-1">
+          <ThemeToggleCircular onToggle={toggleTheme} speed={0.5}>
+            <Button variant="ghost" size="icon" aria-label="Toggle theme">
+              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            </Button>
+          </ThemeToggleCircular>
 
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, ml: "auto" }}>
-              {user && (
-                <IconButton
-                  component={Link}
-                  to="/cart"
-                  sx={{
-                    color: isActive("/cart") ? "primary.main" : "text.secondary",
-                    transition: "color 0.2s",
-                    "&:hover": { color: "primary.main" },
-                    position: "relative",
-                  }}
-                >
-                  <Badge badgeContent={cartCount} max={99}>
-                    <FontAwesomeIcon icon={faBagShopping} style={{ fontSize: 17 }} />
-                  </Badge>
-                </IconButton>
+          <Button variant="ghost" size="icon" asChild className="relative">
+            <Link to="/cart" aria-label="Cart">
+              <ShoppingCart className="h-4 w-4" />
+              {cartCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-primary text-primary-foreground rounded-full">
+                  {cartCount > 9 ? "9+" : cartCount}
+                </Badge>
               )}
+            </Link>
+          </Button>
 
-              {user ? (
-                <>
-                  <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ ml: 0.5 }}>
-                    <Avatar
-                      sx={{
-                        width: 32, height: 32, fontSize: "0.82rem", fontWeight: 700,
-                        background: "linear-gradient(135deg, #C9A84C 0%, #7B5EA7 100%)",
-                        color: "#0A0A0F",
-                      }}
-                    >
-                      {user.name?.charAt(0).toUpperCase()}
-                    </Avatar>
-                  </IconButton>
-
-                  <Menu
-                    anchorEl={anchorEl}
-                    open={Boolean(anchorEl)}
-                    onClose={() => setAnchorEl(null)}
-                    transformOrigin={{ horizontal: "right", vertical: "top" }}
-                    anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-                    sx={{ mt: 1 }}
-                  >
-                    <Box sx={{ px: 2.5, py: 1.8 }}>
-                      <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: "text.primary" }}>{user.name}</Typography>
-                      <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>{user.email}</Typography>
-                    </Box>
-                    <Divider />
-
-                    {user.role === "admin" && (
-                      <MenuItem onClick={() => { setAnchorEl(null); navigate("/admin"); }} sx={{ gap: 2, py: 1.3 }}>
-                        <FontAwesomeIcon icon={faUserShield} style={{ fontSize: 13, color: "#C9A84C" }} />
-                        <Typography variant="body2">Admin Dashboard</Typography>
-                      </MenuItem>
-                    )}
-
-                    <MenuItem onClick={handleLogout} sx={{ gap: 2, py: 1.3, color: "error.main" }}>
-                      <FontAwesomeIcon icon={faRightFromBracket} style={{ fontSize: 13, color: "#E05C5C" }} />
-                      <Typography variant="body2" sx={{ color: "error.main" }}>Sign Out</Typography>
-                    </MenuItem>
-                  </Menu>
-                </>
-              ) : (
-                <Box sx={{ display: "flex", gap: 1, ml: 1 }}>
-                  <Button component={Link} to="/login" variant="outlined" size="small" sx={{ display: { xs: "none", sm: "flex" } }}>
-                    Sign In
-                  </Button>
-                  <Button component={Link} to="/signup" variant="contained" size="small">
-                    Join
-                  </Button>
-                </Box>
-              )}
-            </Box>
-          </Toolbar>
-        </AppBar>
-      </HideOnScroll>
-
-      <Toolbar sx={{ minHeight: { xs: 64, md: 72 } }} />
-
-      <Drawer
-        anchor="left"
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        PaperProps={{ sx: { width: 288, background: "#10101A", borderRight: "1px solid rgba(201,168,76,0.1)" } }}
-      >
-        <Box sx={{ p: 3, height: "100%", display: "flex", flexDirection: "column" }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 5 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <FontAwesomeIcon icon={faGem} style={{ fontSize: 17, color: "#C9A84C" }} />
-              <Typography sx={{ fontFamily: '"Cormorant Garamond", serif', fontSize: "1.4rem", fontWeight: 600, color: "text.primary", letterSpacing: "0.1em" }}>
-                LUXE
-              </Typography>
-            </Box>
-            <IconButton onClick={() => setDrawerOpen(false)} size="small" sx={{ color: "text.secondary" }}>
-              <FontAwesomeIcon icon={faXmark} style={{ fontSize: 18 }} />
-            </IconButton>
-          </Box>
-
-          <List disablePadding sx={{ flex: 1 }}>
-            <ListItem
-              component={Link}
-              to="/"
-              onClick={() => setDrawerOpen(false)}
-              sx={{
-                py: 1.5, px: 0,
-                borderBottom: "1px solid rgba(201,168,76,0.06)",
-                textDecoration: "none",
-                "&:hover .drawer-label": { color: "primary.main" },
-              }}
-            >
-              <ListItemText
-                primary="Home"
-                primaryTypographyProps={{ className: "drawer-label", sx: { fontSize: "0.78rem", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, color: "text.primary", transition: "color 0.2s" } }}
-              />
-            </ListItem>
-
-            <Typography sx={{ fontSize: "0.65rem", letterSpacing: "0.18em", textTransform: "uppercase", color: "primary.main", mt: 3.5, mb: 1.5, fontWeight: 600 }}>
-              Categories
-            </Typography>
-            {CATEGORIES.map((cat) => (
-              <ListItem
-                key={cat.path}
-                component={Link}
-                to={`/shop/${cat.path}`}
-                onClick={() => setDrawerOpen(false)}
-                sx={{
-                  py: 1.3, px: 0,
-                  borderBottom: "1px solid rgba(201,168,76,0.05)",
-                  textDecoration: "none",
-                  display: "flex", gap: 2, alignItems: "center",
-                }}
-              >
-                <FontAwesomeIcon icon={cat.icon} style={{ fontSize: 13, color: "#C9A84C", opacity: 0.7, width: 16 }} />
-                <ListItemText
-                  primary={cat.label}
-                  primaryTypographyProps={{ sx: { fontSize: "0.78rem", letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 500, color: "text.secondary" } }}
-                />
-              </ListItem>
-            ))}
-          </List>
-
-          {!user && (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, mt: 4 }}>
-              <Button fullWidth variant="contained" component={Link} to="/signup" onClick={() => setDrawerOpen(false)}>
-                Create Account
-              </Button>
-              <Button fullWidth variant="outlined" component={Link} to="/login" onClick={() => setDrawerOpen(false)}>
-                Sign In
-              </Button>
-            </Box>
-          )}
-
-          {user && (
-            <Box sx={{ pt: 3, mt: 3, borderTop: "1px solid rgba(201,168,76,0.1)" }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
-                <Avatar sx={{ width: 32, height: 32, fontSize: "0.82rem", background: "linear-gradient(135deg, #C9A84C, #7B5EA7)", color: "#0A0A0F" }}>
-                  {user.name?.charAt(0).toUpperCase()}
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="rounded-full outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                <Avatar className="h-8 w-8 cursor-pointer">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+                    {user.name?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
-                <Box>
-                  <Typography sx={{ fontSize: "0.82rem", fontWeight: 600, color: "text.primary" }}>{user.name}</Typography>
-                  <Typography sx={{ fontSize: "0.7rem", color: "text.secondary" }}>{user.role}</Typography>
-                </Box>
-              </Box>
-              <Button
-                fullWidth variant="text" size="small"
-                startIcon={<FontAwesomeIcon icon={faRightFromBracket} style={{ fontSize: 12 }} />}
-                onClick={() => { setDrawerOpen(false); handleLogout(); }}
-                sx={{ color: "error.main", justifyContent: "flex-start" }}
-              >
-                Sign Out
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-2 py-1.5">
+                  <p className="font-medium text-sm">{user.name}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                </div>
+                <DropdownMenuSeparator />
+                {user.role === "admin" && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin" className="flex items-center gap-2">
+                      <LayoutDashboard className="h-4 w-4" />
+                      Admin Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="hidden md:flex items-center gap-1 ml-1">
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/login">Sign in</Link>
               </Button>
-            </Box>
+              <Button size="sm" asChild>
+                <Link to="/signup">Sign up</Link>
+              </Button>
+            </div>
           )}
-        </Box>
-      </Drawer>
-    </>
+
+          {/* Mobile hamburger */}
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground outline-none">
+              <Menu className="h-5 w-5" />
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0">
+              <SheetHeader className="p-6 pb-4 border-b">
+                <SheetTitle asChild>
+                  <Link to="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-2">
+                    <img src="/favicon.jpg" alt="Luxe" className="h-7 w-7 rounded-full object-cover" />
+                    <span className="font-heading text-lg font-semibold">Luxe</span>
+                  </Link>
+                </SheetTitle>
+              </SheetHeader>
+              <div className="flex flex-col p-4 gap-1">
+                <MobileNavLink to="/" onClick={() => setMobileOpen(false)}>Home</MobileNavLink>
+                <MobileNavLink to="/shop" onClick={() => setMobileOpen(false)}>All Products</MobileNavLink>
+                <Separator className="my-2" />
+                <p className="text-xs font-medium text-muted-foreground px-3 py-1 uppercase tracking-wider">Categories</p>
+                {CATEGORIES.map((cat) => (
+                  <MobileNavLink key={cat} to={`/shop/${cat.toLowerCase()}`} onClick={() => setMobileOpen(false)}>
+                    {cat}
+                  </MobileNavLink>
+                ))}
+                {!user && (
+                  <>
+                    <Separator className="my-2" />
+                    <Button asChild className="mt-1" onClick={() => setMobileOpen(false)}>
+                      <Link to="/login">Sign in</Link>
+                    </Button>
+                    <Button variant="outline" asChild className="mt-2" onClick={() => setMobileOpen(false)}>
+                      <Link to="/signup">Sign up</Link>
+                    </Button>
+                  </>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </nav>
+    </header>
+  );
+}
+
+function MobileNavLink({ to, children, onClick }) {
+  return (
+    <NavLink
+      to={to}
+      onClick={onClick}
+      className={({ isActive }) =>
+        cn(
+          "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+          isActive
+            ? "bg-accent text-accent-foreground"
+            : "text-foreground hover:bg-accent hover:text-accent-foreground"
+        )
+      }
+    >
+      {children}
+    </NavLink>
   );
 }
