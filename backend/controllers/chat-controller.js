@@ -13,18 +13,35 @@ import {
 const CHAT_SESSION_TTL = 60 * 60;
 const MAX_HISTORY_TURNS = 12;
 
+const memoryStore = new Map();
+
 const getSessionHistory = async (sessionId) => {
-    const data = await redis.get(`chat_session:${sessionId}`);
-    return data ? JSON.parse(data) : [];
+    try {
+        const data = await redis.get(`chat_session:${sessionId}`);
+        return data ? JSON.parse(data) : [];
+    } catch {
+        return memoryStore.get(sessionId) || [];
+    }
 };
 
 const saveSessionHistory = async (sessionId, history) => {
     const trimmed = history.slice(-MAX_HISTORY_TURNS);
-    await redis.set(`chat_session:${sessionId}`, JSON.stringify(trimmed), "EX", CHAT_SESSION_TTL);
+    try {
+        await redis.set(`chat_session:${sessionId}`, JSON.stringify(trimmed), "EX", CHAT_SESSION_TTL);
+    } catch {
+        memoryStore.set(sessionId, trimmed);
+        if (memoryStore.size > 500) {
+            const firstKey = memoryStore.keys().next().value;
+            memoryStore.delete(firstKey);
+        }
+    }
 };
 
 const sendSSE = (res, event, data) => {
-    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    const payload = typeof data === "string"
+        ? { type: event, content: data }
+        : { type: event, ...data };
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
 };
 
 export const chat = async (req, res) => {
@@ -68,19 +85,40 @@ export const chat = async (req, res) => {
             return res.end();
         }
 
-        const queryEmbedding = await generateQueryEmbedding(correctedQuery || trimmedMessage);
-        const vectorMatches = await queryProductVectors(queryEmbedding, 8);
+        let products = [];
+        try {
+            const queryEmbedding = await generateQueryEmbedding(correctedQuery || trimmedMessage);
+            const vectorMatches = await queryProductVectors(queryEmbedding, 8);
+            if (vectorMatches && vectorMatches.length > 0) {
+                products = await Product.find({
+                    _id: { $in: vectorMatches.map((m) => m.metadata.productId) },
+                }).lean();
+            }
+        } catch {
+            // Vector search unavailable — fall back to keyword search
+        }
 
-        if (!vectorMatches || vectorMatches.length === 0) {
+        if (products.length === 0) {
+            const query = correctedQuery || trimmedMessage;
+            const searchWords = query.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+            const categoryMatch = ["electronics", "clothing", "accessories", "jewelry", "home", "fragrance"]
+                .find((c) => query.toLowerCase().includes(c));
+
+            const filter = categoryMatch
+                ? { category: { $regex: categoryMatch, $options: "i" } }
+                : searchWords.length > 0
+                ? { $or: searchWords.map((w) => ({ $or: [{ name: { $regex: w, $options: "i" } }, { description: { $regex: w, $options: "i" } }, { category: { $regex: w, $options: "i" } }] })) }
+                : {};
+
+            products = await Product.find(filter).limit(8).lean();
+        }
+
+        if (!products || products.length === 0) {
             const msg = "I couldn't find any products matching your query. Try browsing our categories — we have electronics, clothing, jewelry, accessories, fragrances, and home items!";
             sendSSE(res, "token", msg);
             sendSSE(res, "done", { products: [], cartProducts: [], compareProducts: [] });
             return res.end();
         }
-
-        let products = await Product.find({
-            _id: { $in: vectorMatches.map((m) => m.metadata.productId) },
-        }).lean();
 
         if (budget) {
             const filtered = products.filter((p) => p.price <= budget);

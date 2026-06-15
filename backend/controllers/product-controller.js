@@ -171,7 +171,7 @@ export const getRecommendedProducts = async (req, res) => {
 export const getProductsByCategory = async (req, res) => {
     const { category } = req.params;
     try {
-        const products = await Product.find({ category });
+        const products = await Product.find({ category: { $regex: new RegExp(`^${category}$`, "i") } });
         res.json({ products });
     } catch (error) {
         console.log("Error in getProductsByCategory controller", error.message);
