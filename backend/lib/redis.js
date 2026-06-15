@@ -1,5 +1,13 @@
 import Redis from "ioredis";
 import { ENV } from "./env.js";
 
-// Create and export the Redis client using the URL from env
-export const redis = new Redis(ENV.REDIS_URL);
+export const redis = new Redis(ENV.REDIS_URL, {
+    lazyConnect: true,
+    maxRetriesPerRequest: 1,
+    retryStrategy: () => null,
+    reconnectOnError: () => false,
+});
+
+redis.on("error", (err) => {
+    console.warn(`Redis unavailable: ${err.message}`);
+});
