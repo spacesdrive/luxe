@@ -1,298 +1,219 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  Box, Container, Typography, Grid, Button, TextField,
-  IconButton, Divider, Chip, Paper, Alert,
-  Table, TableBody, TableCell, TableRow, CircularProgress,
-  InputAdornment,
-} from "@mui/material";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faBagShopping, faTag, faArrowLeft, faCircleCheck,
-  faTrash, faPlus, faMinus, faLock,
-} from "@fortawesome/free-solid-svg-icons";
-import useCartStore from "../store/useCartStore";
-import api from "../api/axios";
+import { Trash2, Minus, Plus, Tag, X, ShieldCheck, Truck, ShoppingBag } from "lucide-react";
 import toast from "react-hot-toast";
+
+import useCartStore from "@/store/useCartStore";
+import useAuthStore from "@/store/useAuthStore";
+
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import api from "@/api/axios";
 
 export default function CartPage() {
   const {
-    cart, fetchCart, updateQuantity, removeFromCart,
-    coupon, isCouponApplied, applyCoupon, removeCoupon,
-    total, subtotal, clearCart,
+    cart, coupon, isCouponApplied, total, subtotal, loading,
+    fetchCart, removeFromCart, updateQuantity, applyCoupon, removeCoupon, calculateTotals
   } = useCartStore();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
   const [couponCode, setCouponCode] = useState("");
-  const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
-  useEffect(() => {
-    fetchCart();
-  }, []);
+  useEffect(() => { fetchCart(); }, [fetchCart]);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
-    setApplyingCoupon(true);
-    await applyCoupon(couponCode.trim().toUpperCase());
-    setApplyingCoupon(false);
+    await applyCoupon(couponCode.trim());
+    setCouponCode("");
   };
 
   const handleCheckout = async () => {
     setCheckoutLoading(true);
     try {
-      const res = await api.post("/payments/create-checkout-session", {
-        products: cart,
-        couponCode: coupon?.code || null,
-      });
-      if (res.data.url) {
-        window.location.href = res.data.url;
-      } else {
-        window.location.href = `https://checkout.stripe.com/c/pay/${res.data.id}`;
-      }
+      const res = await api.post("/payments/create-checkout-session", { products: cart, couponCode: coupon?.code });
+      window.location.href = res.data.url;
     } catch {
-      toast.error("Checkout failed. Please try again.");
+      toast.error("Checkout failed");
     } finally {
       setCheckoutLoading(false);
     }
   };
 
-  if (cart.length === 0) {
+  const shipping = subtotal >= 200 ? 0 : 15;
+  const freeShippingRemaining = 200 - subtotal;
+
+  if (loading) {
     return (
-      <Container maxWidth="md" sx={{ py: 14, textAlign: "center" }}>
-        <Box sx={{ mb: 3 }}>
-          <FontAwesomeIcon icon={faBagShopping} style={{ fontSize: 72, color: "#2A2A3A" }} />
-        </Box>
-        <Typography variant="h3" sx={{ color: "text.primary", mb: 2, fontSize: "2.2rem" }}>Your cart is empty</Typography>
-        <Typography sx={{ color: "text.secondary", mb: 6 }}>
-          Discover our collection and add something extraordinary.
-        </Typography>
-        <Button
-          component={Link} to="/shop" variant="contained" size="large"
-          startIcon={<FontAwesomeIcon icon={faArrowLeft} style={{ fontSize: 13 }} />}
-        >
-          Browse Collection
-        </Button>
-      </Container>
+      <div className="container mx-auto px-4 py-10 max-w-5xl">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="md:col-span-2 space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-28 w-full rounded-xl" />
+            ))}
+          </div>
+          <Skeleton className="h-64 rounded-xl" />
+        </div>
+      </div>
     );
   }
 
-  const savings = subtotal - total;
-  const shipping = subtotal >= 200 ? 0 : 15;
+  if (cart.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-24 text-center max-w-md">
+        <div className="rounded-full bg-muted p-8 w-fit mx-auto mb-6">
+          <ShoppingBag className="h-10 w-10 text-muted-foreground" />
+        </div>
+        <h2 className="font-heading text-2xl font-semibold mb-2">Your cart is empty</h2>
+        <p className="text-muted-foreground mb-6">Looks like you have not added anything yet.</p>
+        <Button asChild>
+          <Link to="/shop">Continue Shopping</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <Box sx={{ py: { xs: 4, md: 6 }, minHeight: "100vh" }}>
-      <Container maxWidth="lg">
-        <Box sx={{ mb: 5 }}>
-          <Button
-            component={Link} to="/shop"
-            startIcon={<FontAwesomeIcon icon={faArrowLeft} style={{ fontSize: 12 }} />}
-            variant="text" sx={{ mb: 2, fontSize: "0.75rem" }}
-          >
-            Continue Shopping
-          </Button>
-          <Typography variant="h2" sx={{ fontSize: { xs: "2rem", md: "2.6rem" }, color: "text.primary" }}>
-            Your Cart
-          </Typography>
-          <Typography sx={{ color: "text.secondary" }}>
-            {cart.reduce((s, i) => s + i.quantity, 0)} items
-          </Typography>
-        </Box>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <h1 className="font-heading text-3xl font-semibold mb-8">Shopping Cart</h1>
 
-        <Grid container spacing={4}>
-          <Grid size={{ xs: 12, md: 8 }}>
-            <Paper elevation={0} sx={{ background: "#12121A", border: "1px solid rgba(201,168,76,0.08)", borderRadius: "6px", overflow: "hidden" }}>
-              {cart.map((item, idx) => (
-                <Box key={`${item._id}-${item.selectedSize || "no-size"}`}>
-                  <Box sx={{ display: "flex", gap: { xs: 2, sm: 3 }, p: { xs: 2, sm: 3 }, alignItems: "center" }}>
-                    <Box
-                      component="img"
-                      src={item.image || `https://placehold.co/100x100/1A1A26/C9A84C?text=${encodeURIComponent(item.name)}`}
-                      alt={item.name}
-                      sx={{ width: { xs: 70, sm: 90 }, height: { xs: 70, sm: 90 }, objectFit: "cover", borderRadius: "4px", border: "1px solid rgba(201,168,76,0.1)", flexShrink: 0 }}
-                    />
-
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography
-                        component={Link}
-                        to={`/product/${item._id}`}
-                        sx={{ fontFamily: '"Cormorant Garamond", serif', fontSize: { xs: "1rem", sm: "1.1rem" }, fontWeight: 500, color: "text.primary", textDecoration: "none", display: "block", mb: 0.3, "&:hover": { color: "primary.main" } }}
-                      >
-                        {item.name}
-                      </Typography>
-                      <Typography sx={{ color: "text.secondary", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.06em", mb: item.selectedSize ? 0.6 : 0 }}>
-                        {item.category}
-                      </Typography>
-                      {item.selectedSize && (
-                        <Box sx={{ display: "inline-flex", alignItems: "center", mt: 0.4 }}>
-                          <Box sx={{
-                            px: 1.2, py: 0.25,
-                            border: "1px solid rgba(201,168,76,0.35)",
-                            borderRadius: "3px",
-                            fontSize: "0.68rem",
-                            fontWeight: 700,
-                            color: "primary.main",
-                            letterSpacing: "0.06em",
-                            background: "rgba(201,168,76,0.08)",
-                          }}>
-                            Size: {item.selectedSize}
-                          </Box>
-                        </Box>
-                      )}
-                    </Box>
-
-                    <Box sx={{ display: "flex", alignItems: "center", border: "1px solid rgba(201,168,76,0.2)", borderRadius: "3px", overflow: "hidden", flexShrink: 0 }}>
-                      <IconButton
-                        size="small"
-                        onClick={() => updateQuantity(item._id, item.quantity - 1, item.selectedSize)}
-                        sx={{ borderRadius: 0, color: "text.secondary", "&:hover": { color: "primary.main", background: "rgba(201,168,76,0.06)" }, px: 1.2, py: 0.9 }}
-                      >
-                        <FontAwesomeIcon icon={faMinus} style={{ fontSize: 11 }} />
-                      </IconButton>
-                      <Typography sx={{ px: 2, fontSize: "0.88rem", fontWeight: 600, color: "text.primary", minWidth: 28, textAlign: "center" }}>
-                        {item.quantity}
-                      </Typography>
-                      <IconButton
-                        size="small"
-                        onClick={() => updateQuantity(item._id, item.quantity + 1, item.selectedSize)}
-                        sx={{ borderRadius: 0, color: "text.secondary", "&:hover": { color: "primary.main", background: "rgba(201,168,76,0.06)" }, px: 1.2, py: 0.9 }}
-                      >
-                        <FontAwesomeIcon icon={faPlus} style={{ fontSize: 11 }} />
-                      </IconButton>
-                    </Box>
-
-                    <Box sx={{ textAlign: "right", minWidth: 70, flexShrink: 0 }}>
-                      <Typography sx={{ fontFamily: '"Cormorant Garamond", serif', fontSize: "1.15rem", fontWeight: 600, color: "primary.main" }}>
-                        ${(item.price * item.quantity).toFixed(2)}
-                      </Typography>
-                      <Typography sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
-                        ${item.price.toFixed(2)} ea.
-                      </Typography>
-                    </Box>
-
-                    <IconButton
-                      onClick={() => removeFromCart(item._id, item.selectedSize)}
-                      size="small"
-                      sx={{ color: "text.disabled", "&:hover": { color: "error.main" }, flexShrink: 0 }}
-                    >
-                      <FontAwesomeIcon icon={faTrash} style={{ fontSize: 13 }} />
-                    </IconButton>
-                  </Box>
-                  {idx < cart.length - 1 && <Divider />}
-                </Box>
-              ))}
-            </Paper>
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Paper elevation={0} sx={{ background: "#12121A", border: "1px solid rgba(201,168,76,0.08)", borderRadius: "6px", p: 3, position: "sticky", top: 90 }}>
-              <Typography variant="h5" sx={{ color: "text.primary", mb: 3.5, fontFamily: '"Cormorant Garamond", serif', fontSize: "1.5rem" }}>
-                Order Summary
-              </Typography>
-
-              <Table size="small" sx={{ mb: 2.5 }}>
-                <TableBody>
-                  <TableRow>
-                    <TableCell sx={{ border: "none", pl: 0, color: "text.secondary", fontSize: "0.85rem" }}>Subtotal</TableCell>
-                    <TableCell align="right" sx={{ border: "none", pr: 0, color: "text.primary", fontWeight: 600 }}>
-                      ${subtotal.toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                  {isCouponApplied && savings > 0 && (
-                    <TableRow>
-                      <TableCell sx={{ border: "none", pl: 0, color: "success.main", fontSize: "0.85rem" }}>
-                        Coupon ({coupon.discountPercentage}% off)
-                      </TableCell>
-                      <TableCell align="right" sx={{ border: "none", pr: 0, color: "success.main", fontWeight: 600 }}>
-                        −${savings.toFixed(2)}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  <TableRow>
-                    <TableCell sx={{ border: "none", pl: 0, color: "text.secondary", fontSize: "0.85rem" }}>Shipping</TableCell>
-                    <TableCell align="right" sx={{ border: "none", pr: 0, fontWeight: 600, color: shipping === 0 ? "success.main" : "text.primary" }}>
-                      {shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-
-              <Divider sx={{ mb: 2.5 }} />
-
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
-                <Typography sx={{ fontWeight: 700, fontSize: "1rem", color: "text.primary" }}>Total</Typography>
-                <Typography sx={{ fontFamily: '"Cormorant Garamond", serif', fontSize: "1.6rem", fontWeight: 700, color: "primary.main" }}>
-                  ${(total + shipping).toFixed(2)}
-                </Typography>
-              </Box>
-
-              {!isCouponApplied ? (
-                <Box sx={{ mb: 3 }}>
-                  <Box sx={{ display: "flex", gap: 1 }}>
-                    <TextField
-                      size="small"
-                      placeholder="Coupon code"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                      onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <FontAwesomeIcon icon={faTag} style={{ fontSize: 13, color: "#4A4A60" }} />
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{ flex: 1 }}
-                    />
-                    <Button
-                      variant="outlined" size="small"
-                      onClick={handleApplyCoupon}
-                      disabled={applyingCoupon || !couponCode}
-                      sx={{ px: 2, whiteSpace: "nowrap" }}
-                    >
-                      {applyingCoupon ? <CircularProgress size={13} sx={{ color: "primary.main" }} /> : "Apply"}
-                    </Button>
-                  </Box>
-                </Box>
-              ) : (
-                <Box sx={{ mb: 3 }}>
-                  <Chip
-                    icon={<FontAwesomeIcon icon={faCircleCheck} style={{ fontSize: 13, color: "#4CAF82", marginLeft: 8 }} />}
-                    label={`${coupon.code} — ${coupon.discountPercentage}% off`}
-                    onDelete={removeCoupon}
-                    sx={{ background: "rgba(76,175,130,0.1)", color: "success.main", border: "1px solid rgba(76,175,130,0.3)" }}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Cart items */}
+          <div className="lg:col-span-2 space-y-3">
+            {cart.map((item, idx) => (
+              <div key={`${item._id}-${item.selectedSize}`} className="flex gap-4 p-4 rounded-xl border border-border bg-card">
+                <Link to={`/product/${item._id}`} className="shrink-0">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="h-20 w-20 rounded-lg object-cover bg-muted"
                   />
-                </Box>
-              )}
+                </Link>
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <Link to={`/product/${item._id}`} className="font-medium text-sm hover:text-primary transition-colors line-clamp-2">
+                        {item.name}
+                      </Link>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-muted-foreground">{item.category}</span>
+                        {item.selectedSize && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">{item.selectedSize}</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => removeFromCart(item._id, item.selectedSize)}
+                      className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center border border-border rounded-lg overflow-hidden">
+                      <button
+                        className="h-7 w-7 flex items-center justify-center hover:bg-muted transition-colors"
+                        onClick={() => updateQuantity(item._id, item.quantity - 1, item.selectedSize)}
+                        disabled={item.quantity <= 1}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                      <span className="w-8 text-center text-sm">{item.quantity}</span>
+                      <button
+                        className="h-7 w-7 flex items-center justify-center hover:bg-muted transition-colors"
+                        onClick={() => updateQuantity(item._id, item.quantity + 1, item.selectedSize)}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <span className="font-semibold text-primary font-heading">
+                      ${(item.price * item.quantity).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
 
-              {shipping > 0 && (
-                <Alert severity="info" sx={{ mb: 3, fontSize: "0.78rem" }}>
-                  Add ${(200 - subtotal).toFixed(2)} more for free shipping!
+          {/* Order summary */}
+          <div className="space-y-4">
+            <div className="rounded-xl border border-border bg-card p-5 sticky top-20">
+              <h2 className="font-semibold mb-4">Order Summary</h2>
+
+              {freeShippingRemaining > 0 && (
+                <Alert className="mb-4 border-primary/30 bg-primary/5">
+                  <Truck className="h-4 w-4 text-primary" />
+                  <AlertDescription className="text-xs">
+                    Add <span className="font-semibold text-primary">${freeShippingRemaining.toFixed(2)}</span> more for free shipping!
+                  </AlertDescription>
                 </Alert>
               )}
 
-              <Button
-                fullWidth variant="contained" size="large"
-                onClick={handleCheckout}
-                disabled={checkoutLoading}
-                sx={{ py: 1.8 }}
-                startIcon={checkoutLoading
-                  ? <CircularProgress size={15} sx={{ color: "inherit" }} />
-                  : <FontAwesomeIcon icon={faBagShopping} style={{ fontSize: 14 }} />
-                }
-              >
-                {checkoutLoading ? "Processing…" : "Proceed to Checkout"}
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>${subtotal.toFixed(2)}</span>
+                </div>
+                {isCouponApplied && coupon && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Discount ({coupon.discountPercentage}%)</span>
+                    <span>-${(subtotal * coupon.discountPercentage / 100).toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Shipping</span>
+                  <span>{shipping === 0 ? <span className="text-green-600">Free</span> : `$${shipping}`}</span>
+                </div>
+              </div>
+
+              <Separator className="my-3" />
+              <div className="flex justify-between font-semibold text-base mb-4">
+                <span>Total</span>
+                <span className="text-primary font-heading text-lg">${total.toFixed(2)}</span>
+              </div>
+
+              {/* Coupon */}
+              {isCouponApplied && coupon ? (
+                <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 mb-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-3.5 w-3.5 text-primary" />
+                    <span className="font-medium text-primary">{coupon.code}</span>
+                    <span className="text-muted-foreground text-xs">({coupon.discountPercentage}% off)</span>
+                  </div>
+                  <button onClick={removeCoupon} className="text-muted-foreground hover:text-destructive">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2 mb-3">
+                  <Input
+                    placeholder="Coupon code"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    className="h-9 text-sm"
+                    onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+                  />
+                  <Button variant="outline" size="sm" onClick={handleApplyCoupon} className="shrink-0">Apply</Button>
+                </div>
+              )}
+
+              <Button className="w-full" size="lg" onClick={handleCheckout} disabled={checkoutLoading}>
+                {checkoutLoading ? "Processing..." : "Proceed to Checkout"}
               </Button>
 
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1, mt: 2 }}>
-                <FontAwesomeIcon icon={faLock} style={{ fontSize: 10, color: "#4A4A60" }} />
-                <Typography sx={{ color: "text.disabled", fontSize: "0.72rem" }}>
-                  Secured by Stripe · SSL Encrypted
-                </Typography>
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
-      </Container>
-    </Box>
+              <div className="flex items-center justify-center gap-1.5 mt-3 text-xs text-muted-foreground">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Secured by Stripe
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
