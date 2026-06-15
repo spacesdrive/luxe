@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate, Link, NavLink } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import { Box, CircularProgress } from "@mui/material";
+import { DotLoader } from "@/components/ui/dot-loader";
 
 import useAuthStore from "./store/useAuthStore";
 import Navbar from "./components/Navbar";
@@ -41,52 +41,43 @@ export default function App() {
 
   if (checkingAuth) {
     return (
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#0A0A0F" }}>
-        <CircularProgress sx={{ color: "#C9A84C" }} size={40} thickness={2} />
-      </Box>
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <DotLoader size="lg" className="text-primary" />
+      </div>
     );
   }
 
   return (
     <BrowserRouter>
-      <style>{`
-                @keyframes pageFadeIn {
-                    from { opacity: 0; transform: translateY(8px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                }
-                .page-enter {
-                    animation: pageFadeIn 0.2s ease forwards;
-                }
-            `}</style>
-      <Box sx={{ minHeight: "100vh", background: "#0A0A0F" }}>
+      <div className="min-h-screen bg-background text-foreground">
         <Navbar />
         <Routes>
-          <Route path="/" element={<div className="page-enter"><HomePage /></div>} />
-          <Route path="/shop" element={<div className="page-enter"><ShopPage /></div>} />
-          <Route path="/shop/:category" element={<div className="page-enter"><ShopPage /></div>} />
-          <Route path="/product/:id" element={<div className="page-enter"><ProductPage /></div>} />
-          <Route path="/login" element={<AuthRoute><div className="page-enter"><LoginPage /></div></AuthRoute>} />
-          <Route path="/signup" element={<AuthRoute><div className="page-enter"><SignupPage /></div></AuthRoute>} />
-          <Route path="/cart" element={<ProtectedRoute><div className="page-enter"><CartPage /></div></ProtectedRoute>} />
-          <Route path="/purchase-success" element={<ProtectedRoute><div className="page-enter"><PurchaseSuccessPage /></div></ProtectedRoute>} />
-          <Route path="/purchase-cancel" element={<ProtectedRoute><div className="page-enter"><PurchaseCancelPage /></div></ProtectedRoute>} />
-          <Route path="/admin" element={<AdminRoute><div className="page-enter"><AdminPage /></div></AdminRoute>} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/shop" element={<ShopPage />} />
+          <Route path="/shop/:category" element={<ShopPage />} />
+          <Route path="/product/:id" element={<ProductPage />} />
+          <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
+          <Route path="/signup" element={<AuthRoute><SignupPage /></AuthRoute>} />
+          <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
+          <Route path="/purchase-success" element={<ProtectedRoute><PurchaseSuccessPage /></ProtectedRoute>} />
+          <Route path="/purchase-cancel" element={<ProtectedRoute><PurchaseCancelPage /></ProtectedRoute>} />
+          <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
         </Routes>
         <ChatBot />
-      </Box>
+      </div>
       <Toaster
         position="bottom-right"
         toastOptions={{
           style: {
-            background: "#1A1A26",
-            color: "#F0ECE3",
-            border: "1px solid rgba(201,168,76,0.2)",
-            borderRadius: "2px",
-            fontFamily: '"DM Sans", sans-serif',
+            background: "var(--card)",
+            color: "var(--card-foreground)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius)",
+            fontFamily: "var(--font-sans)",
             fontSize: "0.875rem",
           },
-          success: { iconTheme: { primary: "#C9A84C", secondary: "#0A0A0F" } },
-          error: { iconTheme: { primary: "#E05C5C", secondary: "#F0ECE3" } },
+          success: { iconTheme: { primary: "var(--primary)", secondary: "var(--primary-foreground)" } },
+          error: { iconTheme: { primary: "oklch(0.58 0.22 27)", secondary: "var(--foreground)" } },
         }}
       />
     </BrowserRouter>

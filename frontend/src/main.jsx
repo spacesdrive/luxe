@@ -1,11 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
-
-// MUI Theme & Fonts
-import { ThemeProvider } from "@mui/material/styles";
-import CssBaseline from "@mui/material/CssBaseline";
-import theme from "./theme.js";
+import "./index.css";
+import { ThemeProvider } from "next-themes";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 // Fonts
 import "@fontsource/cormorant-garamond/400.css";
@@ -18,9 +16,10 @@ import "@fontsource/dm-sans/600.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <ThemeProvider theme={theme} disableTransitionOnChange>
-      <CssBaseline />
-      <App />
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+      <TooltipProvider>
+        <App />
+      </TooltipProvider>
     </ThemeProvider>
   </React.StrictMode>
 );
