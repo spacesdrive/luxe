@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 const useProductStore = create((set) => ({
   products: [],
   featuredProducts: [],
+  recommendedProducts: [],
   loading: false,
 
   // Admin-only: fetch all products (requires auth + admin role)
@@ -31,7 +32,7 @@ const useProductStore = create((set) => ({
 
   // Public: fetch products by category
   fetchByCategory: async (category) => {
-    set({ loading: true });
+    set({ loading: true, products: [] });
     try {
       const res = await api.get(`/products/category/${category}`);
       // Handle both { products: [] } and [] shapes
@@ -44,7 +45,7 @@ const useProductStore = create((set) => ({
 
   // Public: fetch all products for the shop "All" view
   fetchPublicProducts: async () => {
-    set({ loading: true });
+    set({ loading: true, products: [] });
     try {
       const [featuredRes, recRes] = await Promise.all([
         api.get("/products/featured"),
@@ -62,6 +63,7 @@ const useProductStore = create((set) => ({
   fetchRecommended: async () => {
     try {
       const res = await api.get("/products/recommendations");
+      set({ recommendedProducts: res.data || [] });
       return res.data;
     } catch {
       return [];
