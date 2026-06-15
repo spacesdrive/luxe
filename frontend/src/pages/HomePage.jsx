@@ -1,518 +1,223 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import {
-  Box, Container, Typography, Button, Grid,
-  Divider, Stack,
-} from "@mui/material";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faArrowRight, faTruckFast, faShieldHalved, faRotateLeft,
-  faGem, faMicrochip, faShirt, faBriefcase, faRing,
-  faCouch, faSprayCan,
-} from "@fortawesome/free-solid-svg-icons";
-import useProductStore from "../store/useProductStore";
-import useAuthStore from "../store/useAuthStore";
-import ProductCard from "../components/ProductCard";
+import { ArrowRight, Truck, ShieldCheck, RotateCcw, Gem, Star } from "lucide-react";
 
-const CATEGORIES = [
-  { label: "Electronics", icon: faMicrochip, color: "#4C8AE0", desc: "Gadgets & tech", bg: "linear-gradient(145deg, #0D1B3E 0%, #1A2A5E 100%)" },
-  { label: "Clothing", icon: faShirt, color: "#7B5EA7", desc: "Style & fashion", bg: "linear-gradient(145deg, #1A1030 0%, #2A1850 100%)" },
-  { label: "Accessories", icon: faBriefcase, color: "#C9A84C", desc: "Bags & more", bg: "linear-gradient(145deg, #2A1F00 0%, #3A2D0A 100%)" },
-  { label: "Jewelry", icon: faRing, color: "#E09C3C", desc: "Fine jewelry", bg: "linear-gradient(145deg, #2A1800 0%, #3D2400 100%)" },
-  { label: "Homes", icon: faCouch, color: "#4CAF82", desc: "Décor & living", bg: "linear-gradient(145deg, #001A10 0%, #0A2E1C 100%)" },
-  { label: "Fragrance", icon: faSprayCan, color: "#E05C5C", desc: "Scents & parfums", bg: "linear-gradient(145deg, #2A0808 0%, #3E1010 100%)" },
-];
+import useProductStore from "@/store/useProductStore";
+import useAuthStore from "@/store/useAuthStore";
+import ProductCard from "@/components/ProductCard";
+
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import { CategoryOne } from "@/components/category-01";
+import { ReviewOne } from "@/components/review-01";
 
 const PROMISES = [
-  { icon: faTruckFast, title: "Free Shipping", desc: "On orders over $200" },
-  { icon: faShieldHalved, title: "Secure Payment", desc: "256-bit SSL encryption" },
-  { icon: faRotateLeft, title: "Easy Returns", desc: "30-day return policy" },
-  { icon: faGem, title: "Authenticity", desc: "100% genuine products" },
+  { icon: Truck, title: "Free Shipping", desc: "On orders over $200" },
+  { icon: ShieldCheck, title: "Secure Payment", desc: "256-bit SSL encryption" },
+  { icon: RotateCcw, title: "Easy Returns", desc: "30-day return policy" },
+  { icon: Gem, title: "Authenticity", desc: "100% genuine products" },
 ];
 
-// Dark skeleton for loading states
-function DarkSkeleton() {
-  return (
-    <Box
-      sx={{
-        height: 430,
-        borderRadius: "6px",
-        bgcolor: "#1A1A26",
-        border: "1px solid rgba(201,168,76,0.08)",
-        overflow: "hidden",
-        position: "relative",
-        "&::after": {
-          content: '""',
-          position: "absolute",
-          inset: 0,
-          background:
-            "linear-gradient(90deg, transparent 25%, rgba(201,168,76,0.04) 50%, transparent 75%)",
-          backgroundSize: "200% 100%",
-          animation: "shimmer 1.8s infinite",
-        },
-        "@keyframes shimmer": {
-          "0%": { backgroundPosition: "-200% 0" },
-          "100%": { backgroundPosition: "200% 0" },
-        },
-      }}
-    />
-  );
-}
+const REVIEWS = [
+  {
+    quote: "Absolutely stunning quality. The jewelry I ordered exceeded my expectations. Every detail is perfect.",
+    author: "Sarah M.",
+    handle: "@sarah_luxe",
+    initials: "SM",
+  },
+  {
+    quote: "The fragrance collection is divine. Fast shipping and beautifully packaged. Will be ordering again.",
+    author: "James K.",
+    handle: "@jk_style",
+    initials: "JK",
+  },
+  {
+    quote: "Best online luxury store I've found. The electronics selection is curated perfectly for discerning buyers.",
+    author: "Priya R.",
+    handle: "@priyar",
+    initials: "PR",
+  },
+];
 
 export default function HomePage() {
-  const { featuredProducts, fetchFeaturedProducts, loading } = useProductStore();
-  const [recommended, setRecommended] = useState([]);
-  const [recLoading, setRecLoading] = useState(true);
-  const { fetchRecommended } = useProductStore();
+  const { featuredProducts, loading, fetchFeaturedProducts, fetchRecommended, recommendedProducts } = useProductStore();
   const { user } = useAuthStore();
 
   useEffect(() => {
     fetchFeaturedProducts();
-    fetchRecommended().then((data) => {
-      setRecommended(data);
-      setRecLoading(false);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    fetchRecommended?.();
+  }, [fetchFeaturedProducts, fetchRecommended]);
 
   return (
-    <Box sx={{ bgcolor: "#0A0A0F" }}>
-      {/* Hero Section */}
-      <Box
-        sx={{
-          position: "relative",
-          minHeight: { xs: "auto", md: "70vh" },
-          display: "flex",
-          alignItems: "center",
-          overflow: "hidden",
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            inset: 0,
-            background: `
-              radial-gradient(ellipse 70% 80% at 50% 60%, rgba(123,94,167,0.13) 0%, transparent 65%),
-              radial-gradient(ellipse 50% 50% at 20% 30%, rgba(201,168,76,0.07) 0%, transparent 55%),
-              linear-gradient(180deg, #0A0A0F 0%, #0D0D18 100%)
-            `,
-          },
-          "&::after": {
-            content: '""',
-            position: "absolute",
-            inset: 0,
-            backgroundImage: `
-              linear-gradient(rgba(201,168,76,0.02) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(201,168,76,0.02) 1px, transparent 1px)
-            `,
-            backgroundSize: "72px 72px",
-            WebkitMaskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 20%, transparent 100%)",
-            maskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 20%, transparent 100%)",
-          },
-        }}
-      >
-        <Container maxWidth="md" sx={{ position: "relative", zIndex: 1, py: { xs: 10, md: 0 }, textAlign: "center" }}>
-          <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1.5, mb: 4 }}>
-            <Box sx={{ width: 28, height: 1, background: "linear-gradient(90deg, transparent, #C9A84C)" }} />
-            <Typography sx={{ color: "primary.main", fontSize: "0.65rem", letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 600 }}>
-              New Collection 2026
-            </Typography>
-            <Box sx={{ width: 28, height: 1, background: "linear-gradient(90deg, #C9A84C, transparent)" }} />
-          </Box>
-
-          <Typography
-            variant="h1"
-            sx={{ fontSize: { xs: "3.2rem", sm: "4.5rem", md: "6rem" }, lineHeight: 1.0, mb: 3, color: "text.primary" }}
-          >
-            Crafted for
-            <Box component="span" sx={{
-              display: "block",
-              background: "linear-gradient(135deg, #C9A84C 0%, #E4C97E 45%, #C9A84C 100%)",
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-            }}>
-              Connoisseurs
-            </Box>
-          </Typography>
-
-          <Typography sx={{
-            fontSize: { xs: "0.95rem", md: "1.1rem" },
-            color: "text.secondary", lineHeight: 1.9, mb: 6,
-            maxWidth: 520, mx: "auto",
-          }}>
-            Premium goods curated for those who appreciate quality without compromise.
-            Each piece chosen with the discerning collector in mind.
-          </Typography>
-
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} justifyContent="center" sx={{ mb: 8 }}>
-            <Button
-              component={Link} to="/shop" variant="contained" size="large"
-              endIcon={<FontAwesomeIcon icon={faArrowRight} style={{ fontSize: "0.75rem" }} />}
-              sx={{ fontSize: "0.75rem", px: 5, py: 1.8 }}
-            >
-              Explore Collection
+    <div className="min-h-screen">
+      {/* Hero */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-accent/20 border-b border-border">
+        <div className="absolute inset-0 opacity-10 pointer-events-none"
+          style={{ backgroundImage: "radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.75 0.13 75 / 0.4), transparent)" }} />
+        <div className="container mx-auto px-4 py-24 lg:py-36 text-center relative">
+          <h1 className="font-heading text-5xl md:text-7xl font-semibold tracking-tight text-foreground mb-6 leading-tight">
+            Elevate Your{" "}
+            <span className="text-primary">Everyday</span>{" "}
+            Luxury
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
+            Discover handpicked premium products across electronics, fashion, jewelry, and more. Delivered to your door.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button size="lg" asChild>
+              <Link to="/shop">
+                Shop Now <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
             </Button>
-            <Button
-              component={Link} to="/shop/fragrance" variant="outlined" size="large"
-              sx={{ fontSize: "0.75rem", px: 8, py: 1.8 }}
-            >
-              View Fragrance
-            </Button>
-          </Stack>
+            {!user && (
+              <Button size="lg" variant="outline" asChild>
+                <Link to="/signup">Create Account</Link>
+              </Button>
+            )}
+          </div>
+        </div>
+      </section>
 
-          <Box sx={{ display: "flex", justifyContent: "center", gap: { xs: 4, md: 8 }, pt: 5, borderTop: "1px solid rgba(201,168,76,0.1)" }}>
-            {[["2k+", "Products"], ["150+", "Brands"], ["98%", "Satisfaction"]].map(([num, lbl]) => (
-              <Box key={lbl}>
-                <Typography sx={{ fontFamily: '"Cormorant Garamond", serif', fontSize: "2.2rem", fontWeight: 600, color: "primary.main", lineHeight: 1 }}>{num}</Typography>
-                <Typography sx={{ fontSize: "0.67rem", color: "text.secondary", letterSpacing: "0.1em", textTransform: "uppercase", mt: 0.4 }}>{lbl}</Typography>
-              </Box>
+      {/* Promises bar */}
+      <section className="border-b border-border bg-card">
+        <div className="container mx-auto px-4 py-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {PROMISES.map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="flex items-center gap-3">
+                <div className="rounded-full bg-primary/10 p-2.5 shrink-0">
+                  <Icon className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">{title}</p>
+                  <p className="text-xs text-muted-foreground">{desc}</p>
+                </div>
+              </div>
             ))}
-          </Box>
-        </Container>
-      </Box>
+          </div>
+        </div>
+      </section>
 
-      {/* Promises Bar */}
-      <Box sx={{ borderTop: "1px solid", borderBottom: "1px solid", borderColor: "divider", py: 3.5, background: "#0E0E1A" }}>
-        <Container maxWidth="md">
-          <Grid container>
-            {PROMISES.map((p, i) => (
-              <Grid item xs={6} md={3} key={p.title}>
-                <Box sx={{
-                  display: "flex", alignItems: "center", gap: 2,
-                  px: { xs: 2, md: 3 }, py: { xs: 2, md: 0 },
-                  borderRight: { md: i < 3 ? "1px solid rgba(201,168,76,0.08)" : "none" },
-                }}>
-                  <Box sx={{
-                    width: 36, height: 36, borderRadius: "8px",
-                    background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.15)",
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                  }}>
-                    <FontAwesomeIcon icon={p.icon} style={{ fontSize: 14, color: "#C9A84C" }} />
-                  </Box>
-                  <Box>
-                    <Typography sx={{ fontSize: "0.78rem", fontWeight: 600, color: "text.primary", lineHeight: 1.2 }}>{p.title}</Typography>
-                    <Typography sx={{ fontSize: "0.67rem", color: "text.secondary", mt: 0.2 }}>{p.desc}</Typography>
-                  </Box>
-                </Box>
-              </Grid>
+      {/* Featured Products */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <h2 className="font-heading text-3xl md:text-4xl font-semibold">Featured Products</h2>
+            <p className="text-muted-foreground mt-1">Handpicked selections for you</p>
+          </div>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/shop">View all <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link>
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {loading
+            ? Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-3">
+                  <Skeleton className="h-64 w-full rounded-xl" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ))
+            : featuredProducts.slice(0, 8).map((product) => (
+                <ProductCard key={product._id} product={product} />
+              ))}
+        </div>
+      </section>
+
+      <Separator />
+
+      {/* Categories (using commercn CategoryOne block) */}
+      <section className="container mx-auto px-4 py-16">
+        <CategoryOne />
+      </section>
+
+      <Separator />
+
+      {/* Recommended */}
+      {recommendedProducts?.length > 0 && (
+        <section className="container mx-auto px-4 py-16">
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <h2 className="font-heading text-3xl md:text-4xl font-semibold">Recommended</h2>
+              <p className="text-muted-foreground mt-1">Picked just for you</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {recommendedProducts.slice(0, 8).map((product) => (
+              <ProductCard key={product._id} product={product} />
             ))}
-          </Grid>
-        </Container>
-      </Box>
+          </div>
+        </section>
+      )}
 
-      {/* Featured Products Section */}
-      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
-        <Box sx={{ mb: 6, textAlign: "center" }}>
-          <Typography variant="subtitle1" sx={{ color: "primary.main", mb: 1 }}>
-            Handpicked Selection
-          </Typography>
-          <Typography variant="h2" sx={{ fontSize: { xs: "2.2rem", md: "3rem" }, color: "text.primary", mb: 2 }}>
-            Featured Products
-          </Typography>
-          <Typography sx={{ color: "text.secondary", maxWidth: 600, mx: "auto" }}>
-            Discover our carefully curated collection of premium items that embody luxury and sophistication
-          </Typography>
-        </Box>
+      <Separator />
 
-        {loading ? (
-          <Grid container spacing={3}>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
-                <DarkSkeleton />
-              </Grid>
-            ))}
-          </Grid>
-        ) : featuredProducts.length > 0 ? (
-          <Grid container spacing={3}>
-            {featuredProducts.slice(0, 8).map((product) => (
-              <Grid key={product._id} size={{ xs: 12, sm: 6, md: 3 }}>
-                <ProductCard product={product} />
-              </Grid>
-            ))}
-          </Grid>
-        ) : (
-          <Box sx={{ textAlign: "center", py: 8 }}>
-            <Typography sx={{ color: "text.secondary" }}>No featured products available</Typography>
-          </Box>
-        )}
-
-        {featuredProducts.length > 0 && (
-          <Box sx={{ textAlign: "center", mt: 6 }}>
-            <Button
-              component={Link}
-              to="/shop"
-              variant="outlined"
-              size="large"
-              endIcon={<FontAwesomeIcon icon={faArrowRight} style={{ fontSize: 12 }} />}
-              sx={{ px: 5 }}
-            >
-              View All Products
-            </Button>
-          </Box>
-        )}
-      </Container>
-
-      {/* Categories Section */}
-      <Box sx={{ py: { xs: 8, md: 12 }, background: "linear-gradient(180deg, #0A0A0F 0%, #0D0D15 100%)" }}>
-        <Container maxWidth="lg">
-          <Box sx={{ mb: 6, textAlign: "center" }}>
-            <Typography variant="subtitle1" sx={{ color: "primary.main", mb: 1 }}>
-              Shop by Category
-            </Typography>
-            <Typography variant="h2" sx={{ fontSize: { xs: "2.2rem", md: "3rem" }, color: "text.primary", mb: 2 }}>
-              Browse Collections
-            </Typography>
-          </Box>
-
-          <Grid container spacing={3}>
-            {CATEGORIES.map((cat) => (
-              <Grid key={cat.label} size={{ xs: 12, sm: 6, md: 4 }}>
-                <CategoryCard cat={cat} />
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
-      </Box>
-
-      {/* Recommended Products Section */}
-      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
-        <Box sx={{ mb: 6, textAlign: "center" }}>
-          <Typography variant="subtitle1" sx={{ color: "primary.main", mb: 1 }}>
-            Curated for You
-          </Typography>
-          <Typography variant="h2" sx={{ fontSize: { xs: "2.2rem", md: "3rem" }, color: "text.primary", mb: 2 }}>
-            Recommended Products
-          </Typography>
-          <Typography sx={{ color: "text.secondary", maxWidth: 600, mx: "auto" }}>
-            Explore our personalized recommendations based on trending items and customer favorites
-          </Typography>
-        </Box>
-
-        {recLoading ? (
-          <Grid container spacing={3}>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
-                <DarkSkeleton />
-              </Grid>
-            ))}
-          </Grid>
-        ) : recommended.length > 0 ? (
-          <Grid container spacing={3}>
-            {recommended.slice(0, 8).map((product) => (
-              <Grid key={product._id} size={{ xs: 12, sm: 6, md: 3 }}>
-                <ProductCard product={product} />
-              </Grid>
-            ))}
-          </Grid>
-        ) : (
-          <Box sx={{ textAlign: "center", py: 8 }}>
-            <Typography sx={{ color: "text.secondary" }}>No recommendations available</Typography>
-          </Box>
-        )}
-
-        {recommended.length > 0 && (
-          <Box sx={{ textAlign: "center", mt: 6 }}>
-            <Button
-              component={Link}
-              to="/shop"
-              variant="contained"
-              size="large"
-              endIcon={<FontAwesomeIcon icon={faArrowRight} style={{ fontSize: 12 }} />}
-              sx={{ px: 5 }}
-            >
-              Explore More
-            </Button>
-          </Box>
-        )}
-      </Container>
+      {/* Reviews */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="text-center mb-10">
+          <h2 className="font-heading text-3xl md:text-4xl font-semibold">What Our Customers Say</h2>
+          <p className="text-muted-foreground mt-2">Real reviews from real buyers</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {REVIEWS.map((review) => (
+            <div key={review.author} className="rounded-xl border border-border bg-card p-6 space-y-4">
+              <div className="flex gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className="h-4 w-4 fill-primary text-primary" />
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">"{review.quote}"</p>
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold shrink-0">
+                  {review.initials}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">{review.author}</p>
+                  <p className="text-xs text-muted-foreground">{review.handle}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Footer */}
-      <Box sx={{ background: "#0D0D15", borderTop: "1px solid rgba(201,168,76,0.1)", pt: { xs: 8, md: 12 }, pb: 4 }}>
-        <Container maxWidth="lg">
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "1.2fr repeat(3, 1fr)" }, gap: { xs: 5, md: 8 }, mb: { xs: 6, md: 10 } }}>
-            {/* Col 1 — Brand */}
-            <Box>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.2, mb: 3 }}>
-                <FontAwesomeIcon icon={faGem} style={{ fontSize: 18, color: "#C9A84C" }} />
-                <Typography sx={{ fontFamily: '"Cormorant Garamond", serif', fontSize: "1.5rem", fontWeight: 600, color: "text.primary", letterSpacing: "0.1em" }}>
-                  LUXE
-                </Typography>
-              </Box>
-              <Typography sx={{ color: "text.secondary", fontSize: "0.88rem", lineHeight: 1.9, mb: 4 }}>
-                Premium goods curated for those who appreciate quality without compromise. Experience luxury redefined.
-              </Typography>
-            </Box>
-
-            {/* Col 2 — Support & Account */}
-            <Box>
-              <Typography sx={{ color: "primary.main", fontSize: "0.63rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, mb: 3 }}>
-                Support
-              </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.4, mb: 4 }}>
-                {[["FAQ", "/faq"], ["Shipping Info", "/shipping"], ["Returns", "/returns"], ["Contact Us", "/contact"]].map(([label, path]) => (
-                  <Typography key={path} component={Link} to={path}
-                    sx={{ color: "text.secondary", fontSize: "0.81rem", textDecoration: "none", transition: "color 0.2s", "&:hover": { color: "primary.main" } }}>
-                    {label}
-                  </Typography>
+      <footer className="border-t border-border bg-card mt-8">
+        <div className="container mx-auto px-4 py-12">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mb-10">
+            <div className="col-span-2 md:col-span-1">
+              <div className="flex items-center gap-2 mb-4">
+                <img src="/favicon.jpg" alt="Luxe" className="h-8 w-8 rounded-full object-cover" />
+                <span className="font-heading text-lg font-semibold">Luxe</span>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Premium curated products for the discerning shopper.
+              </p>
+            </div>
+            <div>
+              <p className="text-sm font-semibold mb-3">Shop</p>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                {["Electronics", "Clothing", "Accessories", "Jewelry"].map((c) => (
+                  <li key={c}><Link to={`/shop/${c.toLowerCase()}`} className="hover:text-primary transition-colors">{c}</Link></li>
                 ))}
-              </Box>
-              <Typography sx={{ color: "primary.main", fontSize: "0.63rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, mb: 3 }}>
-                Account
-              </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.4 }}>
-                {(user
-                  ? [["My Cart", "/cart"]]
-                  : [["Sign In", "/login"], ["Create Account", "/signup"], ["My Cart", "/cart"]]
-                ).map(([label, path]) => (
-                  <Typography key={path} component={Link} to={path}
-                    sx={{ color: "text.secondary", fontSize: "0.81rem", textDecoration: "none", transition: "color 0.2s", "&:hover": { color: "primary.main" } }}>
-                    {label}
-                  </Typography>
-                ))}
-              </Box>
-            </Box>
-
-            {/* Col 3 — Categories */}
-            <Box>
-              <Typography sx={{ color: "primary.main", fontSize: "0.63rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, mb: 3 }}>
-                Categories
-              </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.4 }}>
-                {CATEGORIES.map((c) => (
-                  <Box key={c.label} component={Link} to={`/shop/${c.label.toLowerCase()}`}
-                    sx={{ display: "flex", alignItems: "center", gap: 1.5, textDecoration: "none", "&:hover .lbl": { color: "primary.main" }, "&:hover .ico": { opacity: 1 } }}>
-                    <FontAwesomeIcon className="ico" icon={c.icon} style={{ fontSize: 11, color: c.color, opacity: 0.6, width: 13, transition: "opacity 0.2s" }} />
-                    <Typography className="lbl" sx={{ color: "text.secondary", fontSize: "0.81rem", transition: "color 0.2s" }}>{c.label}</Typography>
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-
-            {/* Col 4 — Why Luxe*/}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <Typography sx={{ color: "primary.main", fontSize: "0.63rem", letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700 }}>
-                Why Luxe
-              </Typography>
-
-              {/* Stats */}
-              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 1.5 }}>
-                {[{ n: "2k+", l: "Curated Products" }, { n: "150+", l: "Global Brands" }, { n: "98%", l: "Happy Customers" }, { n: "30d", l: "Return Window" }].map((s) => (
-                  <Box key={s.l} sx={{ p: 2, background: "#1A1A26", border: "1px solid rgba(201,168,76,0.08)", borderRadius: "8px" }}>
-                    <Typography sx={{ fontFamily: '"Cormorant Garamond", serif', fontSize: "1.6rem", fontWeight: 600, color: "primary.main", lineHeight: 1 }}>{s.n}</Typography>
-                    <Typography sx={{ fontSize: "0.65rem", color: "text.secondary", mt: 0.5 }}>{s.l}</Typography>
-                  </Box>
-                ))}
-              </Box>
-
-              {/* Stay in the loop */}
-              <Box sx={{
-                p: 3,
-                background: "linear-gradient(135deg, rgba(201,168,76,0.05) 0%, rgba(123,94,167,0.05) 100%)",
-                border: "1px solid rgba(201,168,76,0.1)",
-                borderRadius: "10px",
-              }}>
-                <Typography sx={{ fontSize: "0.82rem", fontWeight: 600, color: "text.primary", mb: 0.6 }}>
-                  Stay in the loop
-                </Typography>
-                <Typography sx={{ fontSize: "0.75rem", color: "text.secondary", mb: 2, lineHeight: 1.7 }}>
-                  Get early access to new arrivals, exclusive drops, and member-only offers before anyone else.
-                </Typography>
-                <Button component={Link} to="/signup" variant="outlined" size="small" fullWidth
-                  endIcon={<FontAwesomeIcon icon={faArrowRight} style={{ fontSize: "0.6rem" }} />}
-                  sx={{ fontSize: "0.72rem", py: 1 }}>
-                  Create Account — It's Free
-                </Button>
-              </Box>
-            </Box>
-          </Box>
-
-          <Divider sx={{ my: { xs: 4, md: 6 }, borderColor: "rgba(201,168,76,0.08)" }} />
-
-          <Box sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 2,
-          }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <FontAwesomeIcon icon={faGem} style={{ fontSize: 11, color: "#C9A84C", opacity: 0.5 }} />
-              <Typography sx={{ color: "text.disabled", fontSize: "0.71rem", letterSpacing: "0.06em" }}>
-                © 2026 LUXE STORE. ALL RIGHTS RESERVED.
-              </Typography>
-            </Box>
-            <Box sx={{ display: "flex", gap: 3, alignItems: "center" }}>
-              <Typography sx={{ color: "text.disabled", fontSize: "0.71rem" }}>
-                Secured by Stripe · SSL Encrypted
-              </Typography>
-            </Box>
-          </Box>
-        </Container>
-      </Box>
-    </Box>
-  );
-}
-
-function CategoryCard({ cat }) {
-  return (
-    <Box
-      component={Link}
-      to={`/shop/${cat.label.toLowerCase()}`}
-      sx={{
-        display: "block",
-        textDecoration: "none",
-        borderRadius: "12px",
-        background: cat.bg,
-        border: `1px solid ${cat.color}18`,
-        height: 200,
-        p: 3,
-        position: "relative",
-        overflow: "hidden",
-        transition: "all 0.3s ease",
-        "&:hover": {
-          border: `1px solid ${cat.color}50`,
-          transform: "translateY(-4px)",
-          boxShadow: `0 20px 50px ${cat.color}18`,
-          "& .cat-arrow": { transform: "translateX(5px)", opacity: 1 },
-          "& .cat-icon-wrap": { background: `${cat.color}28` },
-        },
-        "&::after": {
-          content: '""', position: "absolute",
-          top: -50, right: -50,
-          width: 180, height: 180, borderRadius: "50%",
-          background: `radial-gradient(circle, ${cat.color}14 0%, transparent 65%)`,
-          pointerEvents: "none",
-        },
-      }}
-    >
-      <Box
-        className="cat-icon-wrap"
-        sx={{
-          display: "inline-flex", alignItems: "center", justifyContent: "center",
-          p: 1.4, background: `${cat.color}18`,
-          borderRadius: "10px", border: `1px solid ${cat.color}28`,
-          transition: "background 0.25s",
-        }}
-      >
-        <FontAwesomeIcon icon={cat.icon} style={{ fontSize: 22, color: cat.color }} />
-      </Box>
-
-      <Box sx={{ position: "absolute", bottom: 22, left: 24, right: 24 }}>
-        <Typography sx={{
-          fontFamily: '"Cormorant Garamond", serif',
-          fontSize: "1.45rem", fontWeight: 600,
-          color: "#F0ECE3", lineHeight: 1.1, mb: 0.6,
-        }}>
-          {cat.label}
-        </Typography>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Typography sx={{ fontSize: "0.72rem", color: cat.color, fontWeight: 600, letterSpacing: "0.05em" }}>
-            {cat.desc}
-          </Typography>
-          <FontAwesomeIcon
-            className="cat-arrow"
-            icon={faArrowRight}
-            style={{ fontSize: 9, color: cat.color, transition: "transform 0.2s, opacity 0.2s", opacity: 0.6 }}
-          />
-        </Box>
-      </Box>
-    </Box>
+              </ul>
+            </div>
+            <div>
+              <p className="text-sm font-semibold mb-3">Account</p>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link to="/login" className="hover:text-primary transition-colors">Sign In</Link></li>
+                <li><Link to="/signup" className="hover:text-primary transition-colors">Create Account</Link></li>
+                <li><Link to="/cart" className="hover:text-primary transition-colors">Cart</Link></li>
+              </ul>
+            </div>
+          </div>
+          <Separator />
+          <div className="pt-6 text-xs text-muted-foreground text-center">
+            <p>© 2025 Luxe Store. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }
