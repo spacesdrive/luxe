@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="frontend/public/favicon.svg" alt="LUXE Logo" width="100" height="100" />
+<img src="frontend/public/favicon.jpg" alt="LUXE Logo" width="100" height="100" />
 
 # LUXE Store
 
