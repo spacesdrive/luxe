@@ -1,129 +1,47 @@
-import { useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { Box, Container, Typography, Button } from "@mui/material";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCircleCheck, faCircleXmark, faArrowRight, faHouse } from "@fortawesome/free-solid-svg-icons";
-import api from "../api/axios";
-import useCartStore from "../store/useCartStore";
+﻿import { useEffect } from "react";
+import { Link } from "react-router-dom";
+import { CheckCircle2, ShoppingBag, Home } from "lucide-react";
+import useCartStore from "@/store/useCartStore";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import api from "@/api/axios";
 
-export function PurchaseSuccessPage() {
-  const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get("session_id");
+export default function PurchaseSuccessPage() {
   const { clearCart } = useCartStore();
 
   useEffect(() => {
+    const sessionId = new URLSearchParams(window.location.search).get("session_id");
     if (sessionId) {
-      api.post("/payments/checkout-success", { sessionId })
-        .then(() => clearCart())
-        .catch(() => {});
+      api.post("/payments/checkout-success", { sessionId }).catch(() => {});
     }
-  }, [sessionId]);
+    clearCart();
+  }, [clearCart]);
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        position: "relative",
-        "&::before": {
-          content: '""',
-          position: "absolute",
-          inset: 0,
-          background: "radial-gradient(ellipse 60% 60% at 50% 40%, rgba(76,175,130,0.07) 0%, transparent 70%)",
-        },
-      }}
-    >
-      <Container maxWidth="sm" sx={{ position: "relative" }}>
-        <Box
-          sx={{
-            width: 100,
-            height: 100,
-            borderRadius: "50%",
-            background: "rgba(76,175,130,0.1)",
-            border: "1px solid rgba(76,175,130,0.3)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            mx: "auto",
-            mb: 4,
-          }}
-        >
-          <FontAwesomeIcon icon={faCircleCheck} style={{fontSize:52,color:"#4CAF82"}} />
-        </Box>
-        <Typography variant="h2" sx={{ fontSize: { xs: "2rem", md: "2.8rem" }, color: "text.primary", mb: 2 }}>
-          Order Confirmed
-        </Typography>
-        <Typography sx={{ color: "text.secondary", lineHeight: 1.8, mb: 5, fontSize: "1rem" }}>
-          Thank you for your purchase. Your order has been placed and will be processed shortly. You'll receive a confirmation email soon.
-        </Typography>
-        <Box sx={{ display: "flex", gap: 2, justifyContent: "center", flexWrap: "wrap" }}>
-          <Button component={Link} to="/" variant="contained" size="large" startIcon={<FontAwesomeIcon icon={faHouse} style={{fontSize:13}} />} sx={{ px: 4 }}>
-            Back to Home
-          </Button>
-          <Button component={Link} to="/shop" variant="outlined" size="large" endIcon={<FontAwesomeIcon icon={faArrowRight} style={{fontSize:12}} />} sx={{ px: 4 }}>
-            Continue Shopping
-          </Button>
-        </Box>
-      </Container>
-    </Box>
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 bg-background">
+      <Card className="w-full max-w-md text-center">
+        <CardContent className="p-10 space-y-5">
+          <div className="flex justify-center">
+            <div className="rounded-full bg-green-500/10 p-5">
+              <CheckCircle2 className="h-14 w-14 text-green-500" />
+            </div>
+          </div>
+          <div>
+            <h1 className="font-heading text-3xl font-semibold mb-2">Order Confirmed!</h1>
+            <p className="text-muted-foreground">
+              Thank you for your purchase. You will receive an email confirmation shortly.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+            <Button asChild>
+              <Link to="/shop"><ShoppingBag className="h-4 w-4 mr-2" />Continue Shopping</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/"><Home className="h-4 w-4 mr-2" />Back to Home</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
-
-export function PurchaseCancelPage() {
-  return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        position: "relative",
-        "&::before": {
-          content: '""',
-          position: "absolute",
-          inset: 0,
-          background: "radial-gradient(ellipse 60% 60% at 50% 40%, rgba(224,92,92,0.06) 0%, transparent 70%)",
-        },
-      }}
-    >
-      <Container maxWidth="sm" sx={{ position: "relative" }}>
-        <Box
-          sx={{
-            width: 100,
-            height: 100,
-            borderRadius: "50%",
-            background: "rgba(224,92,92,0.1)",
-            border: "1px solid rgba(224,92,92,0.3)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            mx: "auto",
-            mb: 4,
-          }}
-        >
-          <FontAwesomeIcon icon={faCircleXmark} style={{fontSize:52,color:"#E05C5C"}} />
-        </Box>
-        <Typography variant="h2" sx={{ fontSize: { xs: "2rem", md: "2.8rem" }, color: "text.primary", mb: 2 }}>
-          Payment Cancelled
-        </Typography>
-        <Typography sx={{ color: "text.secondary", lineHeight: 1.8, mb: 5 }}>
-          Your order was not completed. No charges were made. Your cart is still saved.
-        </Typography>
-        <Box sx={{ display: "flex", gap: 2, justifyContent: "center", flexWrap: "wrap" }}>
-          <Button component={Link} to="/cart" variant="contained" size="large" sx={{ px: 4 }}>
-            Return to Cart
-          </Button>
-          <Button component={Link} to="/shop" variant="outlined" size="large" endIcon={<FontAwesomeIcon icon={faArrowRight} style={{fontSize:12}} />} sx={{ px: 4 }}>
-            Continue Shopping
-          </Button>
-        </Box>
-      </Container>
-    </Box>
-  );
-}
-
-export default PurchaseSuccessPage;
