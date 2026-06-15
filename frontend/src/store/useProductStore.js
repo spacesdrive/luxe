@@ -24,7 +24,7 @@ const useProductStore = create((set) => ({
     set({ loading: true });
     try {
       const res = await api.get("/products/featured");
-      set({ featuredProducts: res.data, loading: false });
+      set({ featuredProducts: Array.isArray(res.data) ? res.data : [], loading: false });
     } catch {
       set({ loading: false });
     }
@@ -63,7 +63,7 @@ const useProductStore = create((set) => ({
   fetchRecommended: async () => {
     try {
       const res = await api.get("/products/recommendations");
-      set({ recommendedProducts: res.data || [] });
+      set({ recommendedProducts: Array.isArray(res.data) ? res.data : [] });
       return res.data;
     } catch {
       return [];

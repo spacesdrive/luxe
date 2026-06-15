@@ -86,14 +86,14 @@ export default function ProductCard({ product, compact = false }) {
 
           {!compact && (hasSizes || hasShoeSizes) && (
             <div className="flex flex-wrap gap-1 mb-3">
-              {(hasSizes ? product.sizes : product.shoeSizes).slice(0, 4).map((s) => (
+              {(hasSizes ? (product.sizes || []) : (product.shoeSizes || [])).slice(0, 4).map((s) => (
                 <Badge key={s} variant="outline" className="text-[10px] px-1.5 py-0">
                   {s}
                 </Badge>
               ))}
-              {((hasSizes ? product.sizes : product.shoeSizes).length > 4) && (
+              {((hasSizes ? (product.sizes || []) : (product.shoeSizes || [])).length > 4) && (
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                  +{(hasSizes ? product.sizes : product.shoeSizes).length - 4}
+                  +{(hasSizes ? (product.sizes || []) : (product.shoeSizes || [])).length - 4}
                 </Badge>
               )}
             </div>
