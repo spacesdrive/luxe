@@ -1,459 +1,300 @@
-import { useState, useRef, useEffect } from "react";
-import {
-    Box, IconButton, Typography, TextField, Paper, Avatar,
-    CircularProgress, Fade, Chip, Grid, Table, TableBody,
-    TableCell, TableHead, TableRow, Button,
-} from "@mui/material";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-    faComments, faXmark, faPaperPlane, faRobot, faBagShopping,
-} from "@fortawesome/free-solid-svg-icons";
-import ProductCard from "./ProductCard";
-import useCartStore from "../store/useCartStore";
+﻿import { useState, useRef, useEffect } from "react";
+import { MessageCircle, X, Send, Bot, ShoppingBag } from "lucide-react";
+import ProductCard from "@/components/ProductCard";
+import useCartStore from "@/store/useCartStore";
 import toast from "react-hot-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DotLoader } from "@/components/ui/dot-loader";
+import { cn } from "@/lib/utils";
+import { API_BASE } from "@/api/config";
 
 const WELCOME_MESSAGE = {
-    id: "welcome",
-    role: "assistant",
-    text: "Welcome to LUXE! I'm your personal shopping assistant. Ask me about products, and I'll help you find exactly what you're looking for.",
-    products: [],
-    cartProducts: [],
-    compareProducts: [],
-    streaming: false,
-    timestamp: new Date(),
+  id: "welcome",
+  role: "assistant",
+  text: "Welcome to Luxe! I am your personal shopping assistant. Ask me about products and I will help you find exactly what you are looking for.",
+  products: [],
+  cartProducts: [],
+  compareProducts: [],
+  streaming: false,
+  timestamp: new Date(),
 };
 
 const SUGGESTED_QUERIES = [
-    "Show me featured jewelry",
-    "Find electronics under $500",
-    "What fragrances do you have?",
-    "Recommend clothing for men",
+  "Show me featured jewelry",
+  "Find electronics under $500",
+  "What fragrances do you have?",
+  "Recommend clothing for men",
 ];
 
 const getOrCreateSessionId = () => {
-    let id = sessionStorage.getItem("chatSessionId");
-    if (!id) {
-        id = crypto.randomUUID();
-        sessionStorage.setItem("chatSessionId", id);
-    }
-    return id;
+  let id = sessionStorage.getItem("chatSessionId");
+  if (!id) { id = crypto.randomUUID(); sessionStorage.setItem("chatSessionId", id); }
+  return id;
 };
 
 function ComparisonTable({ products }) {
-    if (!products || products.length !== 2) return null;
-    const [a, b] = products;
-
-    const rows = [
-        { label: "Price", va: `$${a.price?.toFixed(2)}`, vb: `$${b.price?.toFixed(2)}` },
-        { label: "Category", va: a.category, vb: b.category },
-        {
-            label: "Sizes",
-            va: a.sizes?.length > 0 ? a.sizes.join(", ") : a.shoeSizes?.join(", ") || "—",
-            vb: b.sizes?.length > 0 ? b.sizes.join(", ") : b.shoeSizes?.join(", ") || "—",
-        },
-        { label: "Featured", va: a.isFeatured ? "✓ Yes" : "No", vb: b.isFeatured ? "✓ Yes" : "No" },
-    ];
-
-    return (
-        <Box sx={{ mt: 2, ml: 4.5, border: "1px solid rgba(201,168,76,0.18)", borderRadius: "8px", overflow: "hidden" }}>
-            <Table size="small">
-                <TableHead>
-                    <TableRow sx={{ background: "rgba(201,168,76,0.08)" }}>
-                        <TableCell sx={{ color: "text.disabled", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.08em", py: 1.2, width: "28%" }}>
-                            FEATURE
-                        </TableCell>
-                        <TableCell sx={{ color: "primary.main", fontSize: "0.72rem", fontWeight: 600, py: 1.2 }}>
-                            {a.name}
-                        </TableCell>
-                        <TableCell sx={{ color: "#A07FCC", fontSize: "0.72rem", fontWeight: 600, py: 1.2 }}>
-                            {b.name}
-                        </TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {rows.map((row) => (
-                        <TableRow key={row.label} sx={{ "&:last-child td": { borderBottom: 0 }, "&:hover": { background: "rgba(255,255,255,0.02)" } }}>
-                            <TableCell sx={{ color: "text.disabled", fontSize: "0.68rem", py: 1, fontWeight: 600 }}>{row.label}</TableCell>
-                            <TableCell sx={{ color: "text.primary", fontSize: "0.72rem", py: 1 }}>{row.va}</TableCell>
-                            <TableCell sx={{ color: "text.primary", fontSize: "0.72rem", py: 1 }}>{row.vb}</TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-            <Box sx={{ display: "flex", gap: 1, p: 1.5, borderTop: "1px solid rgba(201,168,76,0.1)", background: "rgba(0,0,0,0.15)" }}>
-                <Typography sx={{ fontSize: "0.65rem", color: "text.disabled", alignSelf: "center", mr: "auto" }}>
-                    Click a product card below to view full details
-                </Typography>
-            </Box>
-        </Box>
-    );
-}
-
-function CartBanner({ products, onAdd }) {
-    if (!products || products.length === 0) return null;
-
-    return (
-        <Box sx={{ mt: 1.5, ml: 4.5, p: 1.5, border: "1px solid rgba(201,168,76,0.25)", borderRadius: "8px", background: "rgba(201,168,76,0.05)" }}>
-            <Typography sx={{ fontSize: "0.72rem", color: "text.disabled", mb: 1, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600 }}>
-                Add to Cart
-            </Typography>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8 }}>
-                {products.map((product) => (
-                    <Box key={product._id} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
-                        <Typography sx={{ fontSize: "0.78rem", color: "text.secondary", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            <span style={{ color: "#C9A84C", fontWeight: 600 }}>{product.name}</span>
-                            {" "}— ${product.price?.toFixed(2)}
-                        </Typography>
-                        <Button
-                            size="small"
-                            variant="contained"
-                            onClick={() => onAdd(product)}
-                            startIcon={<FontAwesomeIcon icon={faBagShopping} style={{ fontSize: 9 }} />}
-                            sx={{ fontSize: "0.65rem", py: 0.35, px: 1.2, flexShrink: 0, minWidth: 0 }}
-                        >
-                            Add
-                        </Button>
-                    </Box>
-                ))}
-            </Box>
-        </Box>
-    );
+  if (!products || products.length !== 2) return null;
+  const [a, b] = products;
+  const rows = [
+    { label: "Price", va: `$${a.price?.toFixed(2)}`, vb: `$${b.price?.toFixed(2)}` },
+    { label: "Category", va: a.category, vb: b.category },
+    { label: "Sizes", va: a.sizes?.join(", ") || a.shoeSizes?.join(", ") || "—", vb: b.sizes?.join(", ") || b.shoeSizes?.join(", ") || "—" },
+    { label: "Featured", va: a.isFeatured ? "Yes" : "No", vb: b.isFeatured ? "Yes" : "No" },
+  ];
+  return (
+    <div className="mt-2 rounded-lg border border-primary/20 overflow-hidden text-xs">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-primary/5">
+            <TableHead className="py-2 text-[10px] uppercase tracking-wider w-1/4">Feature</TableHead>
+            <TableHead className="py-2 text-primary text-[11px]">{a.name}</TableHead>
+            <TableHead className="py-2 text-[11px]">{b.name}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row) => (
+            <TableRow key={row.label}>
+              <TableCell className="py-1.5 text-[10px] text-muted-foreground font-semibold">{row.label}</TableCell>
+              <TableCell className="py-1.5 text-[11px]">{row.va}</TableCell>
+              <TableCell className="py-1.5 text-[11px]">{row.vb}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
 }
 
 export default function ChatBot() {
-    const [open, setOpen] = useState(false);
-    const [messages, setMessages] = useState([WELCOME_MESSAGE]);
-    const [input, setInput] = useState("");
-    const [loading, setLoading] = useState(false);
-    const messagesEndRef = useRef(null);
-    const inputRef = useRef(null);
-    const sessionId = useRef(getOrCreateSessionId());
-    const { addToCart } = useCartStore();
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState([WELCOME_MESSAGE]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+  const scrollRef = useRef(null);
+  const inputRef = useRef(null);
+  const userScrolledUp = useRef(false);
+  const sessionId = useRef(getOrCreateSessionId());
+  const { addToCart } = useCartStore();
 
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+  useEffect(() => {
+    if (!userScrolledUp.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
-    useEffect(() => {
-        if (open) setTimeout(() => inputRef.current?.focus(), 200);
-    }, [open]);
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+    userScrolledUp.current = !atBottom;
+  };
 
-    const handleCartAdd = (product) => {
-        addToCart(product, null);
-        toast.success(`${product.name} added to cart`);
-    };
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 200);
+  }, [open]);
 
-    const sendMessage = async (text) => {
-        const messageText = (text || input).trim();
-        if (!messageText || loading) return;
+  const handleCartAdd = (product) => {
+    addToCart(product, null);
+    toast.success(`${product.name} added to cart`);
+  };
 
-        const userMsg = {
-            id: Date.now().toString(),
-            role: "user",
-            text: messageText,
-            products: [],
-            cartProducts: [],
-            compareProducts: [],
-            streaming: false,
-            timestamp: new Date(),
-        };
+  const sendMessage = async (text) => {
+    const messageText = (text || input).trim();
+    if (!messageText || loading) return;
 
-        const streamId = (Date.now() + 1).toString();
-        const streamingMsg = {
-            id: streamId,
-            role: "assistant",
-            text: "",
-            products: [],
-            cartProducts: [],
-            compareProducts: [],
-            streaming: true,
-            timestamp: new Date(),
-        };
+    const userMsg = { id: Date.now().toString(), role: "user", text: messageText, products: [], cartProducts: [], compareProducts: [], streaming: false, timestamp: new Date() };
+    const streamId = (Date.now() + 1).toString();
+    const streamingMsg = { id: streamId, role: "assistant", text: "", products: [], cartProducts: [], compareProducts: [], streaming: true, timestamp: new Date() };
 
-        setMessages((prev) => [...prev, userMsg, streamingMsg]);
-        setInput("");
-        setLoading(true);
+    setMessages((prev) => [...prev, userMsg, streamingMsg]);
+    setInput("");
+    setLoading(true);
 
-        try {
-            const { API_BASE } = await import("../api/config.js");
-            const response = await fetch(`${API_BASE}/chat`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ message: messageText, sessionId: sessionId.current }),
-            });
+    try {
+      const response = await fetch(`${API_BASE}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ message: messageText, sessionId: sessionId.current }),
+      });
 
-            if (!response.ok) throw new Error("Request failed");
+      if (!response.ok) throw new Error("Failed to send message");
 
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = "";
-            let lastEvent = "";
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
 
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split("\n");
-                buffer = lines.pop();
-
-                for (const line of lines) {
-                    if (line.startsWith("event: ")) {
-                        lastEvent = line.slice(7).trim();
-                    } else if (line.startsWith("data: ")) {
-                        const raw = line.slice(6);
-                        try {
-                            const parsed = JSON.parse(raw);
-
-                            if (lastEvent === "token") {
-                                setMessages((prev) =>
-                                    prev.map((m) =>
-                                        m.id === streamId ? { ...m, text: m.text + parsed } : m
-                                    )
-                                );
-                            } else if (lastEvent === "done") {
-                                setMessages((prev) =>
-                                    prev.map((m) =>
-                                        m.id === streamId
-                                            ? {
-                                                ...m,
-                                                streaming: false,
-                                                products: parsed.products || [],
-                                                cartProducts: parsed.cartProducts || [],
-                                                compareProducts: parsed.compareProducts || [],
-                                            }
-                                            : m
-                                    )
-                                );
-                            } else if (lastEvent === "error") {
-                                setMessages((prev) =>
-                                    prev.map((m) =>
-                                        m.id === streamId
-                                            ? { ...m, text: parsed.message, streaming: false }
-                                            : m
-                                    )
-                                );
-                            }
-                        } catch {
-                        }
-                        lastEvent = "";
-                    }
-                }
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === "token") {
+              setMessages((prev) => prev.map((m) => m.id === streamId ? { ...m, text: m.text + data.content } : m));
+            } else if (data.type === "done") {
+              setMessages((prev) => prev.map((m) => m.id === streamId ? {
+                ...m,
+                streaming: false,
+                products: data.products || [],
+                cartProducts: data.cartProducts || [],
+                compareProducts: data.compareProducts || [],
+              } : m));
+            } else if (data.type === "error") {
+              setMessages((prev) => prev.map((m) => m.id === streamId ? { ...m, streaming: false, text: "Sorry, I encountered an error. Please try again." } : m));
             }
-        } catch {
-            setMessages((prev) =>
-                prev.map((m) =>
-                    m.id === streamId
-                        ? { ...m, text: "Sorry, I'm having trouble right now. Please try again in a moment.", streaming: false }
-                        : m
-                )
-            );
-        } finally {
-            setLoading(false);
+          } catch { /* ignore parse errors */ }
         }
-    };
+      }
+    } catch {
+      setMessages((prev) => prev.map((m) => m.id === streamId ? { ...m, streaming: false, text: "Connection error. Please try again." } : m));
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleKeyDown = (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    };
+  return (
+    <>
+      {/* Toggle button */}
+      <button
+        onClick={() => setOpen(!open)}
+        className={cn(
+          "fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300",
+          "bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95"
+        )}
+        aria-label="Toggle chat"
+      >
+        {open ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
+      </button>
 
-    return (
-        <>
-            <Fade in={!open}>
-                <IconButton
-                    onClick={() => setOpen(true)}
-                    sx={{
-                        position: "fixed", bottom: 28, right: 28, zIndex: 1300,
-                        width: 56, height: 56,
-                        background: "linear-gradient(135deg, #C9A84C 0%, #7B5EA7 100%)",
-                        color: "#0A0A0F",
-                        boxShadow: "0 4px 24px rgba(201,168,76,0.35)",
-                        "&:hover": { background: "linear-gradient(135deg, #E4C97E 0%, #9B7ED4 100%)", transform: "scale(1.08)" },
-                        transition: "all 0.25s ease",
-                        display: open ? "none" : "flex",
-                    }}
-                >
-                    <FontAwesomeIcon icon={faComments} style={{ fontSize: 22 }} />
-                </IconButton>
-            </Fade>
+      {/* Chat panel */}
+      {open && (
+        <div className="fixed bottom-24 right-6 z-50 w-[380px] max-w-[calc(100vw-3rem)] rounded-2xl border border-border bg-card shadow-2xl shadow-black/20 flex flex-col overflow-hidden"
+          style={{ height: "540px" }}>
+          {/* Header */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card/90 backdrop-blur-sm">
+            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <Bot className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Luxe Assistant</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500 inline-block" />
+                Online
+              </p>
+            </div>
+            <button onClick={() => setOpen(false)} className="ml-auto text-muted-foreground hover:text-foreground">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
 
-            <Fade in={open}>
-                <Paper
-                    elevation={0}
-                    sx={{
-                        position: "fixed", bottom: 28, right: 28, zIndex: 1300,
-                        width: { xs: "calc(100vw - 32px)", sm: 420 },
-                        height: { xs: "calc(100vh - 100px)", sm: 620 },
-                        maxHeight: 620,
-                        display: open ? "flex" : "none",
-                        flexDirection: "column",
-                        background: "#10101A",
-                        border: "1px solid rgba(201,168,76,0.18)",
-                        borderRadius: "12px",
-                        overflow: "hidden",
-                    }}
-                >
-                    <Box sx={{
-                        px: 2.5, py: 2,
-                        background: "linear-gradient(135deg, rgba(201,168,76,0.12) 0%, rgba(123,94,167,0.12) 100%)",
-                        borderBottom: "1px solid rgba(201,168,76,0.12)",
-                        display: "flex", alignItems: "center", gap: 1.5,
-                    }}>
-                        <Avatar sx={{ width: 34, height: 34, background: "linear-gradient(135deg, #C9A84C, #7B5EA7)" }}>
-                            <FontAwesomeIcon icon={faRobot} style={{ fontSize: 15, color: "#0A0A0F" }} />
-                        </Avatar>
-                        <Box sx={{ flex: 1 }}>
-                            <Typography sx={{ fontFamily: '"Cormorant Garamond", serif', fontSize: "1rem", fontWeight: 600, color: "text.primary", lineHeight: 1.2 }}>
-                                LUXE Assistant
-                            </Typography>
-                            <Typography sx={{ fontSize: "0.7rem", color: "text.secondary" }}>Powered by AI</Typography>
-                        </Box>
-                        <IconButton onClick={() => setOpen(false)} size="small" sx={{ color: "text.secondary" }}>
-                            <FontAwesomeIcon icon={faXmark} style={{ fontSize: 16 }} />
-                        </IconButton>
-                    </Box>
+          {/* Messages */}
+          <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-3 overscroll-contain">
+            <div className="space-y-4">
+              {messages.map((msg) => (
+                <div key={msg.id} className={cn("flex gap-2.5", msg.role === "user" ? "justify-end" : "justify-start")}>
+                  {msg.role === "assistant" && (
+                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <Bot className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                  )}
+                  <div className={cn("max-w-[85%] space-y-2", msg.role === "user" ? "items-end" : "items-start")}>
+                    <div className={cn(
+                      "rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground rounded-tr-sm"
+                        : "bg-muted text-foreground rounded-tl-sm"
+                    )}>
+                      {msg.streaming ? (
+                        <DotLoader size="sm" />
+                      ) : (
+                        <span>{msg.text}</span>
+                      )}
+                    </div>
 
-                    <Box sx={{
-                        flex: 1, overflowY: "auto", px: 2, py: 2,
-                        display: "flex", flexDirection: "column", gap: 1.5,
-                        "&::-webkit-scrollbar": { width: 4 },
-                        "&::-webkit-scrollbar-track": { background: "transparent" },
-                        "&::-webkit-scrollbar-thumb": { background: "rgba(201,168,76,0.2)", borderRadius: 2 },
-                    }}>
-                        {messages.map((msg) => (
-                            <Box key={msg.id} sx={{ display: "flex", flexDirection: "column", alignItems: msg.role === "user" ? "flex-end" : "flex-start" }}>
-                                <Box sx={{ display: "flex", alignItems: "flex-end", gap: 1, flexDirection: msg.role === "user" ? "row-reverse" : "row" }}>
-                                    {msg.role === "assistant" && (
-                                        <Avatar sx={{ width: 26, height: 26, background: "linear-gradient(135deg, #C9A84C, #7B5EA7)", flexShrink: 0 }}>
-                                            <FontAwesomeIcon icon={faRobot} style={{ fontSize: 12, color: "#0A0A0F" }} />
-                                        </Avatar>
-                                    )}
-                                    <Box sx={{
-                                        maxWidth: "80%", px: 1.8, py: 1.2,
-                                        borderRadius: msg.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                                        background: msg.role === "user"
-                                            ? "linear-gradient(135deg, rgba(201,168,76,0.25) 0%, rgba(201,168,76,0.15) 100%)"
-                                            : "rgba(255,255,255,0.05)",
-                                        border: msg.role === "user"
-                                            ? "1px solid rgba(201,168,76,0.3)"
-                                            : "1px solid rgba(255,255,255,0.06)",
-                                    }}>
-                                        <Typography sx={{ fontSize: "0.84rem", color: "text.primary", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
-                                            {msg.text}
-                                            {msg.streaming && (
-                                                <Box component="span" sx={{
-                                                    display: "inline-block", width: 2, height: "1em",
-                                                    background: "#C9A84C", ml: 0.3, verticalAlign: "text-bottom",
-                                                    "@keyframes blink": { "0%, 100%": { opacity: 1 }, "50%": { opacity: 0 } },
-                                                    animation: "blink 0.8s ease infinite",
-                                                }} />
-                                            )}
-                                        </Typography>
-                                    </Box>
-                                </Box>
+                    {/* Comparison table */}
+                    {msg.compareProducts?.length === 2 && (
+                      <ComparisonTable products={msg.compareProducts} />
+                    )}
 
-                                {!msg.streaming && msg.compareProducts?.length === 2 && (
-                                    <ComparisonTable products={msg.compareProducts} />
-                                )}
-
-                                {!msg.streaming && msg.compareProducts?.length === 2 && (
-                                    <Box sx={{ mt: 1.5, ml: 4.5 }}>
-                                        <Grid container spacing={1}>
-                                            {msg.compareProducts.map((product) => (
-                                                <Grid key={product._id} size={{ xs: 6 }}>
-                                                    <ProductCard product={product} compact={true} />
-                                                </Grid>
-                                            ))}
-                                        </Grid>
-                                    </Box>
-                                )}
-
-                                {!msg.streaming && msg.products?.length > 0 && msg.compareProducts?.length !== 2 && (
-                                    <Box sx={{ mt: 1.5, ml: 4.5 }}>
-                                        <Grid container spacing={1}>
-                                            {msg.products.map((product) => (
-                                                <Grid key={product._id} size={{ xs: 6 }}>
-                                                    <ProductCard product={product} compact={true} />
-                                                </Grid>
-                                            ))}
-                                        </Grid>
-                                    </Box>
-                                )}
-
-                                {!msg.streaming && msg.cartProducts?.length > 0 && (
-                                    <CartBanner products={msg.cartProducts} onAdd={handleCartAdd} />
-                                )}
-                            </Box>
+                    {/* Product grid */}
+                    {msg.products?.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        {msg.products.slice(0, 4).map((p) => (
+                          <ProductCard key={p._id} product={p} compact />
                         ))}
+                      </div>
+                    )}
 
-                        {loading && !messages.some((m) => m.streaming) && (
-                            <Box sx={{ display: "flex", alignItems: "flex-end", gap: 1 }}>
-                                <Avatar sx={{ width: 26, height: 26, background: "linear-gradient(135deg, #C9A84C, #7B5EA7)", flexShrink: 0 }}>
-                                    <FontAwesomeIcon icon={faRobot} style={{ fontSize: 12, color: "#0A0A0F" }} />
-                                </Avatar>
-                                <Box sx={{
-                                    px: 2, py: 1.5, borderRadius: "16px 16px 16px 4px",
-                                    background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.06)",
-                                    display: "flex", gap: 0.6, alignItems: "center",
-                                }}>
-                                    {[0, 1, 2].map((i) => (
-                                        <Box key={i} sx={{
-                                            width: 6, height: 6, borderRadius: "50%", background: "#C9A84C", opacity: 0.7,
-                                            "@keyframes bounce": { "0%, 80%, 100%": { transform: "scale(0.8)", opacity: 0.5 }, "40%": { transform: "scale(1.2)", opacity: 1 } },
-                                            animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
-                                        }} />
-                                    ))}
-                                </Box>
-                            </Box>
-                        )}
+                    {/* Cart add buttons */}
+                    {msg.cartProducts?.length > 0 && (
+                      <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 p-2.5 space-y-1.5">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Quick Add</p>
+                        {msg.cartProducts.map((product) => (
+                          <div key={product._id} className="flex items-center justify-between gap-2">
+                            <span className="text-xs text-foreground truncate">
+                              <span className="text-primary font-medium">{product.name}</span>
+                              {" "}— ${product.price?.toFixed(2)}
+                            </span>
+                            <Button size="sm" className="h-6 px-2 text-[10px] shrink-0" onClick={() => handleCartAdd(product)}>
+                              <ShoppingBag className="h-3 w-3 mr-1" />Add
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
 
-                        {messages.length === 1 && !loading && (
-                            <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 0.8, ml: 4.5 }}>
-                                {SUGGESTED_QUERIES.map((q) => (
-                                    <Chip key={q} label={q} size="small" onClick={() => sendMessage(q)}
-                                        sx={{
-                                            fontSize: "0.72rem", height: 26,
-                                            background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.2)",
-                                            color: "text.secondary", cursor: "pointer",
-                                            "&:hover": { background: "rgba(201,168,76,0.16)", color: "primary.main", borderColor: "primary.main" },
-                                            transition: "all 0.2s",
-                                        }}
-                                    />
-                                ))}
-                            </Box>
-                        )}
+            {/* Suggested queries (only when no conversation yet) */}
+            {messages.length === 1 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {SUGGESTED_QUERIES.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => sendMessage(q)}
+                    className="text-xs px-3 py-1.5 rounded-full border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-                        <div ref={messagesEndRef} />
-                    </Box>
-
-                    <Box sx={{ px: 2, py: 1.5, borderTop: "1px solid rgba(201,168,76,0.1)", display: "flex", gap: 1, alignItems: "flex-end" }}>
-                        <TextField
-                            inputRef={inputRef} multiline maxRows={3} size="small"
-                            placeholder="Ask about products..." value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={handleKeyDown} disabled={loading} fullWidth
-                            sx={{ "& .MuiOutlinedInput-root": { fontSize: "0.84rem", borderRadius: "8px", background: "rgba(255,255,255,0.03)" } }}
-                        />
-                        <IconButton
-                            onClick={() => sendMessage()} disabled={loading || !input.trim()}
-                            sx={{
-                                width: 38, height: 38,
-                                background: loading || !input.trim() ? "rgba(201,168,76,0.1)" : "linear-gradient(135deg, #C9A84C, #7B5EA7)",
-                                color: loading || !input.trim() ? "text.disabled" : "#0A0A0F",
-                                flexShrink: 0,
-                                "&:hover": { background: loading || !input.trim() ? "rgba(201,168,76,0.1)" : "linear-gradient(135deg, #E4C97E, #9B7ED4)" },
-                                transition: "all 0.2s", borderRadius: "8px",
-                            }}
-                        >
-                            {loading ? <CircularProgress size={16} sx={{ color: "inherit" }} /> : <FontAwesomeIcon icon={faPaperPlane} style={{ fontSize: 14 }} />}
-                        </IconButton>
-                    </Box>
-                </Paper>
-            </Fade>
-        </>
-    );
+          {/* Input */}
+          <div className="px-4 py-3 border-t border-border">
+            <form
+              onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
+              className="flex gap-2"
+            >
+              <Input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask about products..."
+                disabled={loading}
+                className="h-9 text-sm"
+              />
+              <Button type="submit" size="icon" className="h-9 w-9 shrink-0" disabled={loading || !input.trim()}>
+                <Send className="h-3.5 w-3.5" />
+              </Button>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
