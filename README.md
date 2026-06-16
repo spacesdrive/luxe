@@ -1,173 +1,181 @@
 <div align="center">
+  <img src="frontend/public/favicon.jpg" alt="Luxe Logo" width="80" height="80" style="border-radius: 50%;" />
+  <h1>Luxe</h1>
+  <p><strong>A full-stack luxury e-commerce platform with an AI shopping assistant powered by Llama 3.3, vector search, and real-time streaming.</strong></p>
 
-<img src="frontend/public/favicon.jpg" alt="LUXE Logo" width="100" height="100" />
+  <p>
+    <a href="https://luxe.spacesdrive.cc" target="_blank"><img src="https://img.shields.io/badge/Live%20Demo-luxe.spacesdrive.cc-c9a84c?style=flat-square" alt="Live Demo" /></a>
+    <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white" alt="React 19" />
+    <img src="https://img.shields.io/badge/Node.js-Express-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js" />
+    <img src="https://img.shields.io/badge/MongoDB-Mongoose-47A248?style=flat-square&logo=mongodb&logoColor=white" alt="MongoDB" />
+    <img src="https://img.shields.io/badge/AI-Groq%20%2B%20Llama%203.3-FF6B35?style=flat-square" alt="Groq AI" />
+    <img src="https://img.shields.io/badge/Payments-Stripe-635BFF?style=flat-square&logo=stripe&logoColor=white" alt="Stripe" />
+    <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="MIT License" />
+  </p>
 
-# LUXE Store
-
-### An AI-powered premium e-commerce store with a real-time shopping assistant chatbot
-
-[![Node.js](https://img.shields.io/badge/Node.js-22.x-339933?style=flat&logo=node.js&logoColor=white)](https://nodejs.org)
-[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev)
-[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat&logo=mongodb&logoColor=white)](https://mongodb.com)
-[![Redis](https://img.shields.io/badge/Redis-Upstash-DC382D?style=flat&logo=redis&logoColor=white)](https://upstash.com)
-[![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF?style=flat&logo=stripe&logoColor=white)](https://stripe.com)
-[![Pinecone](https://img.shields.io/badge/Pinecone-Vector_DB-000000?style=flat)](https://pinecone.io)
-[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
-
+  <p>
+    <a href="https://luxe.spacesdrive.cc">View Live Demo</a>
+    &nbsp;&bull;&nbsp;
+    <a href="#quick-start">Quick Start</a>
+    &nbsp;&bull;&nbsp;
+    <a href="#architecture">Architecture</a>
+    &nbsp;&bull;&nbsp;
+    <a href="#api-reference">API Reference</a>
+  </p>
 </div>
 
 ---
 
-## What is LUXE?
+## What is Luxe?
 
-I built a fake luxury store. But the AI inside it is very real. It's called LUXE. Electronics, clothing, jewelry, fragrances, accessories, home products the whole thing. But the part I actually spent time on was the chatbot. Most product search is broken. You type "blue shirt under 50 bucks" and it returns 400 unrelated results. You typo one word and it gives up entirely. This one doesn't do that. It figures out what you actually meant. Fixes your typos. Understands budgets. Knows the difference between "I want something for my mom" and "show me fragrances under $30." Under the hood it's using NVIDIA embeddings and Pinecone to do semantic vector search so it's matching meaning, not just keywords. Then Groq's LLaMA 3.3 70B streams the response back in real time. No loading spinner. No waiting. Just a conversation. The kind of shopping experience that actually feels like talking to someone who knows the store. Built the whole thing full-stack. Still kind of surprised it works this well.
+Luxe is a production-grade luxury e-commerce store with a built-in AI shopping assistant. Users can browse six product categories, filter and search products, manage a cart, apply coupons, and check out via Stripe. The AI assistant understands natural language, searches a vector database using semantic embeddings, streams responses token-by-token, and can compare products or add items to cart directly from the chat window.
+
+Admins get a full dashboard with revenue analytics, daily sales charts, and complete product management.
+
+---
+
+## Live Demo
+
+**[https://luxe.spacesdrive.cc](https://luxe.spacesdrive.cc)**
+
+Register a free account at the live site to browse products and test the AI assistant. To access the admin dashboard, set your user's `role` field to `"admin"` in MongoDB.
 
 ---
 
 ## Features
 
-- **AI Shopping Assistant** — real-time streaming chatbot that understands natural language queries, corrects typos, filters by budget and category, and recommends relevant products
-- **Semantic Product Search** — NVIDIA NV-EmbedQA embeddings + Pinecone vector database for similarity-based product retrieval
-- **Intent Classification** — LLM-powered classifier distinguishes product searches, price filters, greetings, store info questions, and off-topic messages
-- **Stripe Checkout** — full payment flow with session-based order creation and reward coupons for orders over $200
-- **JWT Authentication** — access and refresh tokens stored in HTTP-only cookies, refresh tokens stored in Redis
-- **Admin Dashboard** — analytics overview (users, products, revenue, sales) with a 7-day daily sales chart
-- **Cloudinary Image Uploads** — product images uploaded and served via Cloudinary CDN
-- **Cart with Size Selection** — supports clothing sizes and shoe sizes per cart item
-- **Coupon System** — per-user discount coupons with expiration dates, validated before checkout
-- **Dark Premium UI** — MUI v7 components styled around a dark `#0A0A0F` theme with gold accents
+| Feature | Description |
+|---|---|
+| AI Shopping Assistant | Streams responses via SSE using Llama 3.3 70B on Groq. Understands budget, category focus, and product comparisons |
+| Vector Search | Products embedded with NVIDIA NV-EmbedQA-E5-v5 (1024 dimensions) and queried through Pinecone |
+| Keyword Fallback | When Pinecone is unavailable, falls back to MongoDB regex search automatically |
+| JWT Authentication | 15-minute access tokens plus 7-day refresh tokens in HTTP-only cookies. Cross-origin `sameSite` handled automatically |
+| Stripe Checkout | Complete payment flow with line items, coupon discounts applied via Stripe API, and order creation on success |
+| Reward Coupons | Orders over $200 auto-generate a personal 10% coupon (30-day expiry) for that user |
+| Admin Dashboard | Total users, products, revenue, and sales. Daily breakdown chart powered by Recharts |
+| Product Management | Full CRUD for products with Cloudinary image uploads, size variants, and featured toggle |
+| Six Categories | Electronics, Clothing, Accessories, Jewelry, Home, Fragrance with URL-routed category pages |
+| Dark / Light Mode | System-aware theme switching with View Transitions API for a smooth cross-fade animation |
+| Redis Sessions | Chat history stored in Redis with in-memory Map fallback when Redis is unavailable |
+| Graceful Degradation | Server remains available if MongoDB or Redis fail on startup |
 
 ---
 
 ## Tech Stack
 
-### Backend
-| Layer | Technology |
-|---|---|
-| Runtime | Node.js (ESM) |
-| Framework | Express.js |
-| Database | MongoDB + Mongoose |
-| Cache / Sessions | Redis (ioredis) via Upstash |
-| Auth | JWT (access 15m + refresh 7d), HTTP-only cookies |
-| Payments | Stripe |
-| Image Storage | Cloudinary |
-| AI Chat | Groq SDK — LLaMA 3.3 70B + LLaMA 3.1 8B |
-| Vector Search | Pinecone |
-| Embeddings | NVIDIA NV-EmbedQA-E5-v5 (1024-dim) |
-
 ### Frontend
-| Layer | Technology |
-|---|---|
-| Framework | React 19 + Vite 7 |
-| UI Library | Material UI v7 + Emotion |
-| State Management | Zustand |
-| Routing | React Router v7 |
-| HTTP Client | Axios |
-| Charts | Recharts |
-| Fonts | Cormorant Garamond + DM Sans |
-| Notifications | React Hot Toast |
 
-### Tooling / Scripts
-| Tool | Purpose |
-|---|---|
-| Python + PyMongo | Seed product embeddings to Pinecone |
-| UptimeRobot | Keep free-tier backend alive |
+| Technology | Version | Purpose |
+|---|---|---|
+| React | 19 | UI framework |
+| Vite | 7 | Build tool and dev server |
+| shadcn/ui | v4 | Component library built on Base UI primitives |
+| Tailwind CSS | v4 | Utility-first styling with OKLCH color tokens |
+| next-themes | 0.4 | Dark/light mode with system detection |
+| Zustand | 5 | Global state (auth, cart, products) |
+| React Router | v7 | Client-side routing |
+| Recharts | 3 | Admin analytics charts |
+| Lucide React | latest | Icon system |
 
----
+### Backend
 
-## Project Structure
-
-```
-ai-shopping-assistant/
-│
-├── backend/
-│   ├── controllers/         # Route handlers
-│   │   ├── auth-controller.js
-│   │   ├── product-controller.js
-│   │   ├── cart-controller.js
-│   │   ├── coupon-controller.js
-│   │   ├── payment-controller.js
-│   │   ├── analytics-controller.js
-│   │   └── chat-controller.js
-│   │
-│   ├── lib/                 # Third-party configs
-│   │   ├── env.js           # Centralized env variables
-│   │   ├── db.js            # MongoDB connection
-│   │   ├── redis.js         # Redis client
-│   │   ├── cloudinary.js    # Cloudinary config
-│   │   └── stripe.js        # Stripe client
-│   │
-│   ├── middleware/
-│   │   └── auth-middleware.js   # protectRoute + adminRoute
-│   │
-│   ├── models/
-│   │   ├── user-model.js
-│   │   ├── product-model.js
-│   │   ├── order-model.js
-│   │   └── coupon-model.js
-│   │
-│   ├── routes/              # Express routers
-│   │   ├── auth-route.js
-│   │   ├── product-route.js
-│   │   ├── cart-route.js
-│   │   ├── coupon-route.js
-│   │   ├── payment-route.js
-│   │   ├── analytics-route.js
-│   │   └── chat-route.js
-│   │
-│   └── services/            # AI and external integrations
-│       ├── embedding-service.js   # NVIDIA embeddings
-│       ├── pinecone-service.js    # Vector upsert/query/delete
-│       ├── llm-service.js         # Groq streaming + extraction
-│       └── intent-service.js      # LLM intent classifier
-│
-├── frontend/
-│   └── src/
-│       ├── api/             # Axios instance + base URL config
-│       ├── components/      # Navbar, ProductCard, ChatBot
-│       ├── pages/           # All page components
-│       ├── store/           # Zustand stores (auth, cart, products)
-│       ├── theme.js         # MUI theme config
-│       ├── App.jsx          # Routes + layout
-│       └── main.jsx         # React entry point
-│
-└── scripts/
-    ├── seed-embeddings.py   # Seeds all products into Pinecone
-    └── requirements.txt     # Python dependencies
-```
+| Technology | Version | Purpose |
+|---|---|---|
+| Node.js + Express | 4.19 | REST API server |
+| MongoDB + Mongoose | 8.5 | Primary database |
+| Redis (ioredis) | 5.4 | JWT refresh token storage and chat session cache |
+| Groq SDK | 0.37 | Llama 3.3 70B inference for AI chat streaming |
+| Pinecone | 7.1 | Vector database for semantic product search |
+| NVIDIA NV-EmbedQA-E5-v5 | - | 1024-dimension product and query embeddings |
+| Stripe | 16 | Payment processing and coupon management |
+| Cloudinary | 2.4 | Product image hosting and transformation |
+| jsonwebtoken | 9 | JWT signing and verification |
+| bcryptjs | 2.4 | Password hashing with bcrypt (cost factor 10) |
 
 ---
 
-## How the AI Chatbot Works
-
-Every chat message goes through a 5-step pipeline:
+## Architecture
 
 ```
-User message
-     │
-     ▼
-1. Intent Classification (Groq LLaMA 3.1 8B)
-   └── Classifies: product_search / price_filter / greeting / store_info / off_topic
-   └── Extracts: corrected query, budget, category
-     │
-     ▼
-2. Embedding Generation (NVIDIA NV-EmbedQA-E5-v5)
-   └── Converts the corrected query into a 1024-dim vector
-     │
-     ▼
-3. Vector Search (Pinecone)
-   └── Finds the top 8 most semantically similar products
-     │
-     ▼
-4. LLM Response (Groq LLaMA 3.3 70B — streamed via SSE)
-   └── Generates a warm, concise recommendation using only real products
-     │
-     ▼
-5. Structured Data Extraction (Groq LLaMA 3.3 70B — JSON mode)
-   └── Extracts which products to show, add to cart, or compare
+                          Browser
+                             |
+               +-------------+-------------+
+               |                           |
+      Cloudflare Pages             Render (Node.js)
+      (React + Vite SPA)                  |
+               |                   +-------+-------+
+               | HTTPS REST/SSE    |               |
+               +-----------------> Express API     |
+                                   |               |
+                           +-------+-------+       |
+                           |               |       |
+                        MongoDB         Redis   Cloudinary
+                        (data)     (tokens +   (images)
+                                    sessions)
+                           |
+                   +-------+-------+
+                   |               |
+                 Groq           Pinecone
+              (Llama 3.3)     (vector DB)
+                   |               |
+                NVIDIA          semantic
+              embeddings         search
 ```
 
-Chat sessions are stored in Redis with a 1-hour TTL, enabling multi-turn conversations.
+### AI Chat Flow
+
+```
+User sends message
+        |
+        v
+Intent analysis via Groq
+(greeting / product search / store_info / off_topic)
+        |
+        v
+Generate query embedding (NVIDIA NV-EmbedQA-E5-v5)
+        |
+        v
+Query Pinecone for top 8 semantic matches
+        |
+  (if unavailable)
+        v
+Keyword fallback via MongoDB regex search
+        |
+        v
+Filter by budget and category if specified
+        |
+        v
+Stream response via Groq Llama 3.3 70B over SSE
+        |
+        v
+Extract structured data (product IDs, cart intent, comparison pairs)
+        |
+        v
+Persist conversation to Redis (12-turn rolling window, 1h TTL)
+```
+
+### Authentication Flow
+
+```
+POST /api/auth/signup or /login
+        |
+        v
+Issue access token (15 min) + refresh token (7 days)
+        |
+        +---> Store refresh token in Redis
+        +---> Set both as HTTP-only cookies
+                    (sameSite: "none" on cross-origin, "strict" on same-origin)
+        |
+        v
+Protected routes: verify access token via middleware
+        |
+  (token expired)
+        v
+Client calls POST /api/auth/refresh
+        |
+        v
+Validate Redis-stored refresh token -> issue new access token
+```
 
 ---
 
@@ -175,49 +183,73 @@ Chat sessions are stored in Redis with a 1-hour TTL, enabling multi-turn convers
 
 ### Prerequisites
 
-- Node.js 18+
-- MongoDB Atlas account (free)
-- Upstash Redis account (free)
-- Groq API key (free) — [console.groq.com](https://console.groq.com)
-- NVIDIA API key (free) — [build.nvidia.com](https://build.nvidia.com)
-- Pinecone account (free) — [pinecone.io](https://pinecone.io)
-- Cloudinary account (free)
+- Node.js 18 or higher
+- MongoDB Atlas cluster (or local MongoDB)
+- Upstash Redis (or local Redis)
+- Groq API key (free at [console.groq.com](https://console.groq.com))
 - Stripe account
+- Cloudinary account
+- Pinecone account and NVIDIA API key (required only for semantic AI search)
 
-### 1. Clone the repo
-
-```bash
-git clone https://github.com/your-username/ai-shopping-assistant.git
-cd ai-shopping-assistant
-```
-
-### 2. Install dependencies
+### 1. Clone and install
 
 ```bash
-# Backend
+git clone https://github.com/spacesdrive/luxe.git
+cd luxe
 npm install
-
-# Frontend
 npm install --prefix frontend
 ```
 
-### 3. Create environment files
+### 2. Configure environment variables
 
-Create `.env` in the root:
+```bash
+cp .env.example .env
+# Edit .env with your credentials
+```
+
+See [Environment Variables](#environment-variables) for the full list.
+
+### 3. Start development servers
+
+**Backend** (runs on port 5000):
+
+```bash
+npm run dev
+```
+
+**Frontend** (runs on port 5173, in a separate terminal):
+
+```bash
+cd frontend
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+---
+
+## Environment Variables
+
+Create a `.env` file in the project root (not inside `frontend/`):
 
 ```env
+# Server
 PORT=5000
 NODE_ENV=development
 
+# URLs (no trailing slash)
+FRONTEND_URL=http://localhost:5173
+BACKEND_URL=http://localhost:5000
+
 # MongoDB
-MONGO_DB_URI=mongodb+srv://user:password@cluster.mongodb.net/ai-shopping-agent
+MONGO_DB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/luxe
 
 # Redis
-REDIS_URL=redis://default:password@your-endpoint.upstash.io:6379
+REDIS_URL=rediss://default:<password>@<host>:<port>
 
-# JWT
-ACCESS_TOKEN_SECRET=your_access_token_secret_here
-REFRESH_TOKEN_SECRET=your_refresh_token_secret_here
+# JWT Secrets (use long random strings, minimum 32 characters each)
+ACCESS_TOKEN_SECRET=your_access_token_secret
+REFRESH_TOKEN_SECRET=your_refresh_token_secret
 
 # Cloudinary
 CLOUDINARY_CLOUD_NAME=your_cloud_name
@@ -225,160 +257,235 @@ CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 
 # Stripe
-STRIPE_SECRET_KEY=sk_test_your_key
+STRIPE_SECRET_KEY=sk_test_...
 
-# URLs
-BACKEND_URL=http://localhost:5000
-FRONTEND_URL=http://localhost:5173
+# Groq (AI Chat - required for AI assistant)
+GROQ_API_KEY=gsk_...
 
-# AI Services
-GROQ_API_KEY=your_groq_api_key
-NVIDIA_API_KEY=your_nvidia_api_key
-PINECONE_API_KEY=your_pinecone_api_key
+# NVIDIA (Product Embeddings - required for semantic search)
+NVIDIA_API_KEY=nvapi-...
+
+# Pinecone (Vector Search - required for semantic search)
+PINECONE_API_KEY=pcsk_...
 PINECONE_INDEX=luxe-products
 ```
 
-Create `frontend/.env`:
-
-```env
-VITE_BACKEND_URL=http://localhost:5000
-```
-
-### 4. Seed product embeddings into Pinecone
-
-> Do this after you have added products to MongoDB.
-
-```bash
-cd scripts
-pip install -r requirements.txt
-python seed-embeddings.py
-```
-
-### 5. Run the app
-
-```bash
-# Run backend and frontend together
-npm run dev              # backend (port 5000)
-npm run dev --prefix frontend   # frontend (port 5173)
-```
-
-Open [http://localhost:5173](http://localhost:5173)
+The AI chat assistant and semantic search require Groq, NVIDIA, and Pinecone. Without them, the chatbot falls back to MongoDB keyword search automatically. All other features (auth, cart, checkout, admin) work independently.
 
 ---
 
-## Environment Variables Reference
+## API Reference
 
-### Backend (root `.env`)
+### Authentication
 
-| Variable | Description | Required |
-|---|---|---|
-| `PORT` | Backend server port | No (default 5000) |
-| `NODE_ENV` | `development` or `production` | Yes |
-| `MONGO_DB_URI` | MongoDB Atlas connection string | Yes |
-| `REDIS_URL` | Upstash Redis `redis://` URL | Yes |
-| `ACCESS_TOKEN_SECRET` | Secret for signing access tokens | Yes |
-| `REFRESH_TOKEN_SECRET` | Secret for signing refresh tokens | Yes |
-| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name | Yes |
-| `CLOUDINARY_API_KEY` | Cloudinary API key | Yes |
-| `CLOUDINARY_API_SECRET` | Cloudinary API secret | Yes |
-| `STRIPE_SECRET_KEY` | Stripe secret key (`sk_...`) | Yes |
-| `BACKEND_URL` | Full URL of deployed backend | Yes |
-| `FRONTEND_URL` | Full URL of deployed frontend | Yes |
-| `GROQ_API_KEY` | Groq API key for LLM | Yes |
-| `NVIDIA_API_KEY` | NVIDIA API key for embeddings | Yes |
-| `PINECONE_API_KEY` | Pinecone API key | Yes |
-| `PINECONE_INDEX` | Pinecone index name | Yes |
-
-### Frontend (`frontend/.env`)
-
-| Variable | Description | Required |
-|---|---|---|
-| `VITE_BACKEND_URL` | Backend URL for production | No (uses proxy in dev) |
-
----
-
-## Deployment (Free Forever)
-
-| Service | Provider | Free Tier |
-|---|---|---|
-| Frontend | [Vercel](https://vercel.com) | Free forever |
-| Backend | [Render](https://render.com) | 750 hrs/month |
-| MongoDB | [MongoDB Atlas](https://mongodb.com/cloud/atlas) | 512MB free forever |
-| Redis | [Upstash](https://upstash.com) | 10k commands/day free |
-| Keep-alive | [UptimeRobot](https://uptimerobot.com) | Pings every 5 min, free |
-
-**Backend settings on Render:**
-- Build Command: `npm install`
-- Start Command: `node backend/server.js`
-- Root Directory: *(leave empty)*
-
-**Frontend settings on Vercel:**
-- Root Directory: `frontend`
-- Build Command: `npm run build`
-- Output Directory: `dist`
-- Environment Variable: `VITE_BACKEND_URL=https://your-backend.onrender.com`
-
----
-
-## API Routes
-
-### Auth — `/api/auth`
-| Method | Route | Description | Auth |
+| Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| POST | `/signup` | Register a new user | Public |
-| POST | `/login` | Log in | Public |
-| POST | `/logout` | Log out | Public |
-| POST | `/refresh-token` | Refresh access token | Public |
-| GET | `/profile` | Get current user | Protected |
+| POST | `/api/auth/signup` | Public | Register a new user |
+| POST | `/api/auth/login` | Public | Login and receive tokens in cookies |
+| POST | `/api/auth/logout` | Public | Clear auth cookies |
+| POST | `/api/auth/refresh` | Public | Issue a new access token from refresh token |
+| GET | `/api/auth/profile` | User | Get the current authenticated user |
 
-### Products — `/api/products`
-| Method | Route | Description | Auth |
+### Products
+
+| Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| GET | `/all` | Get all products (public) | Public |
-| GET | `/featured` | Get featured products | Public |
-| GET | `/category/:category` | Get by category | Public |
-| GET | `/recommendations` | Get 4 random products | Public |
-| GET | `/:id` | Get single product | Public |
-| GET | `/` | Get all products | Admin |
-| POST | `/` | Create product | Admin |
-| PUT | `/:id` | Update product | Admin |
-| PATCH | `/:id` | Toggle featured | Admin |
-| DELETE | `/:id` | Delete product | Admin |
+| GET | `/api/products` | Admin | List all products |
+| POST | `/api/products` | Admin | Create a product |
+| PUT | `/api/products/:id` | Admin | Update a product |
+| DELETE | `/api/products/:id` | Admin | Delete a product |
+| PATCH | `/api/products/:id` | Admin | Toggle featured status |
+| GET | `/api/products/featured` | Public | Get featured products |
+| GET | `/api/products/recommendations` | Public | Get recommended products |
+| GET | `/api/products/category/:name` | Public | Get products by category (case-insensitive) |
 
-### Cart — `/api/cart`
-| Method | Route | Auth |
+### Cart
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/cart` | User | Get cart with populated product data |
+| POST | `/api/cart` | User | Add a product to cart |
+| DELETE | `/api/cart` | User | Clear the entire cart |
+| PUT | `/api/cart/:id` | User | Update quantity for a cart item |
+
+### Payments
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/api/payments/create-checkout-session` | User | Create a Stripe checkout session |
+| POST | `/api/payments/checkout-success` | User | Confirm payment, deactivate coupon, create order |
+
+### Coupons
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/coupons` | User | Get the active coupon for the current user |
+| POST | `/api/coupons/validate` | User | Validate a coupon code and return discount |
+
+### Analytics
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/analytics` | Admin | Summary stats and last 7 days of daily sales data |
+
+### Chat
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/api/chat` | Public | Send a message. Returns an SSE stream |
+
+**Request body:**
+
+```json
+{
+  "message": "Show me fragrances under $100",
+  "sessionId": "uuid-v4"
+}
+```
+
+**SSE event format:**
+
+```
+data: {"type":"token","content":"Here are some beautiful..."}
+
+data: {"type":"done","products":[...],"cartProducts":[...],"compareProducts":[...]}
+
+data: {"type":"error","message":"Sorry, I'm having trouble right now."}
+```
+
+---
+
+## Database Schema
+
+### User
+
+| Field | Type | Notes |
 |---|---|---|
-| GET | `/` | Get cart items | Protected |
-| POST | `/` | Add to cart | Protected |
-| DELETE | `/` | Remove from cart | Protected |
-| PUT | `/:id` | Update quantity | Protected |
+| name | String | Required |
+| email | String | Required, unique, lowercase |
+| password | String | Bcrypt hashed. 8-64 chars, validated against common password list |
+| cartItems | Array | `[{ product, quantity, selectedSize }]` |
+| role | String | `"user"` or `"admin"` |
 
-### Other Endpoints
-| Route | Description |
+### Product
+
+| Field | Type | Notes |
+|---|---|---|
+| name | String | Required |
+| description | String | Required |
+| price | Number | Required, min 0 |
+| image | String | Cloudinary URL |
+| category | String | Electronics / Clothing / Accessories / Jewelry / Home / Fragrance |
+| isFeatured | Boolean | Default false |
+| sizes | [String] | Clothing sizes (XS, S, M, L, XL, XXL, 3XL) |
+| shoeSizes | [String] | Shoe sizes (UK 5 through UK 12) |
+
+### Order
+
+| Field | Type | Notes |
+|---|---|---|
+| user | ObjectId | Reference to User |
+| products | Array | `[{ product, quantity, price }]` |
+| totalAmount | Number | Total in USD |
+| stripeSessionId | String | Unique, prevents duplicate order creation |
+
+### Coupon
+
+| Field | Type | Notes |
+|---|---|---|
+| code | String | Unique, auto-generated (e.g. GIFT3K9A2F) |
+| discountPercentage | Number | 0-100 |
+| expirationDate | Date | 30 days from generation |
+| isActive | Boolean | Set to false after use |
+| userId | ObjectId | One coupon per user (unique index) |
+
+---
+
+## Deployment
+
+The recommended setup is Cloudflare Pages for the frontend and Render for the backend.
+
+### Frontend on Cloudflare Pages
+
+| Setting | Value |
 |---|---|
-| `POST /api/coupons/validate` | Validate a coupon code |
-| `POST /api/payments/create-checkout-session` | Create Stripe checkout |
-| `POST /api/payments/checkout-success` | Confirm payment and save order |
-| `GET /api/analytics` | Get sales analytics (Admin only) |
-| `POST /api/chat` | Send a message to the AI chatbot (SSE stream) |
+| Root directory | `frontend` |
+| Build command | `npm install && npm run build` |
+| Build output directory | `dist` |
+| Environment variable | `VITE_BACKEND_URL=https://your-app.onrender.com` |
+
+### Backend on Render
+
+| Setting | Value |
+|---|---|
+| Root directory | `/` |
+| Build command | `npm install` |
+| Start command | `node backend/server.js` |
+| Environment | Add all variables from [Environment Variables](#environment-variables) |
+
+**Keeping the free tier awake:** Render's free tier spins down after 15 minutes of inactivity (30-second cold start on next request). Use [UptimeRobot](https://uptimerobot.com) (free, no card) to monitor your Render URL every 5 minutes.
+
+---
+
+## Project Structure
+
+```
+luxe/
+├── backend/
+│   ├── controllers/        Route handlers (auth, products, cart, payments, chat, analytics)
+│   ├── lib/                DB, Redis, Cloudinary, Stripe clients and env config
+│   ├── middleware/         JWT protection and admin guard middleware
+│   ├── models/             Mongoose schemas (User, Product, Order, Coupon)
+│   ├── routes/             Express routers
+│   ├── services/           Groq streaming, NVIDIA embeddings, Pinecone, intent detection
+│   └── server.js           Application entry point
+├── frontend/
+│   └── src/
+│       ├── api/            Axios instance and base URL config
+│       ├── components/     Navbar, ProductCard, ChatBot, shadcn/ui components, registry blocks
+│       ├── hooks/          Custom React hooks
+│       ├── lib/            Utility functions (cn, class merging)
+│       ├── pages/          Route pages (Home, Shop, Product, Cart, Admin, Login, Signup)
+│       ├── store/          Zustand stores (useAuthStore, useCartStore, useProductStore)
+│       ├── App.jsx         React Router layout and route definitions
+│       ├── index.css       OKLCH luxury gold theme variables and global styles
+│       └── main.jsx        React 19 entry point with ThemeProvider
+└── package.json            Root scripts: dev, start, build
+```
 
 ---
 
 ## Contributing
 
-Contributions are welcome. Please follow these steps:
+Contributions are welcome. To contribute:
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feat/your-feature-name`
-3. Stage only the files you changed: `git add specific-file.js`
-4. Commit with a clear message: `git commit -m "feat: describe your change"`
-5. Push: `git push origin feat/your-feature-name`
-6. Open a Pull Request
+```bash
+# 1. Fork the repository and create a branch
+git checkout -b feature/your-feature-name
 
-Please make sure your code runs locally before submitting a PR.
+# 2. Install dependencies
+npm install && npm install --prefix frontend
+
+# 3. Make your changes and run both dev servers to verify
+
+# 4. Commit with a descriptive message following conventional commits
+git commit -m "feat: add your feature description"
+
+# 5. Push and open a pull request against main
+git push origin feature/your-feature-name
+```
+
+For significant changes, open an issue first to discuss the approach. Bug reports should include steps to reproduce and the expected versus actual behavior.
 
 ---
 
 ## License
 
-This project is licensed under the [MIT License](./LICENSE).
+MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+  <p>Built with React 19, shadcn/ui v4, Groq Llama 3.3, and Stripe.</p>
+  <a href="https://luxe.spacesdrive.cc">luxe.spacesdrive.cc</a>
+</div>
