@@ -96,11 +96,45 @@ Register a free account at the live site to browse products and test the AI assi
 
 ## Architecture
 
-The interactive architecture diagram shows all services, data flows, and AI pipeline connections with color-coded component types and export options (PNG / PDF).
+```mermaid
+graph TB
+    subgraph CF["Cloudflare Pages"]
+        FE["React 19 · Vite 7\nshadcn/ui v4 · Zustand · React Router"]
+    end
 
-**[View Interactive Architecture Diagram](docs/architecture.html)**
+    subgraph RD["Render"]
+        API["Express API"]
+        JWT["JWT Middleware"]
+        API --- JWT
+    end
 
-> Open `docs/architecture.html` in any browser. Use the `...` button in the top-right corner to export as PNG or PDF.
+    subgraph DS["Data Services"]
+        MDB[("MongoDB Atlas")]
+        RDS[("Redis · Upstash")]
+        PIN[("Pinecone")]
+    end
+
+    subgraph AI["AI Services"]
+        Groq["Groq\nLlama 3.3 70B"]
+        NV["NVIDIA\nNV-EmbedQA-E5-v5"]
+    end
+
+    subgraph EXT["Cloud Services"]
+        STR["Stripe"]
+        CDN["Cloudinary"]
+    end
+
+    User(["Browser"]) -->|HTTPS| FE
+    FE -->|"REST + SSE"| API
+    API --> MDB
+    API --> RDS
+    API --> STR
+    API --> CDN
+    API -->|"SSE stream"| Groq
+    API -->|"embed query"| NV
+    NV -->|"1024-dim vectors"| PIN
+    API -->|"vector search"| PIN
+```
 
 ### System Overview
 
