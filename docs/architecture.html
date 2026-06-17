@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luxe Architecture Diagram</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: #020617;
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .header { margin-bottom: 1.75rem; }
+    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.4rem; }
+    .pulse-dot { width: 12px; height: 12px; background: #22d3ee; border-radius: 50%; animation: pulse 2s infinite; flex-shrink: 0; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.025em; }
+    .subtitle { color: #94a3b8; font-size: 0.8rem; margin-left: 1.75rem; }
+    .diagram-container {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 1rem;
+      border: 1px solid #1e293b;
+      padding: 1.25rem;
+      overflow-x: auto;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+    .card { background: rgba(15, 23, 42, 0.5); border-radius: 0.75rem; border: 1px solid #1e293b; padding: 1.1rem; }
+    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; }
+    .card-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.orange { background: #fb923c; }
+    .card h3 { font-size: 0.8rem; font-weight: 600; }
+    .card ul { list-style: none; color: #94a3b8; font-size: 0.72rem; }
+    .card li { margin-bottom: 0.3rem; }
+    .footer { text-align: center; margin-top: 1.25rem; color: #475569; font-size: 0.72rem; }
+    .toolbar { display: flex; gap: 0.5rem; margin-left: auto; flex-shrink: 0; align-items: center; }
+    .toolbar-toggle { background: transparent; border: none; color: #475569; cursor: pointer; font-size: 1.2rem; padding: 0.2rem 0.5rem; border-radius: 0.375rem; transition: color 0.2s, background 0.2s; }
+    .toolbar-toggle:hover { color: #94a3b8; background: rgba(30,41,59,0.5); }
+    .toolbar-actions { display: none; gap: 0.5rem; }
+    .toolbar.expanded .toolbar-actions { display: flex; }
+    .toolbar-actions button { background: rgba(30,41,59,0.8); border: 1px solid #334155; color: #94a3b8; padding: 0.3rem 0.65rem; border-radius: 0.375rem; font-family: inherit; font-size: 0.72rem; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .toolbar-actions button:hover { background: rgba(51,65,85,0.8); color: white; border-color: #475569; }
+    @media print { body { background: #020617; padding: 1rem; } .toolbar { display: none !important; } }
+  </style>
+</head>
+<body>
+<div class="container" id="report-container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-row">
+      <div class="pulse-dot"></div>
+      <h1>Luxe &mdash; System Architecture</h1>
+      <div class="toolbar">
+        <div class="toolbar-actions">
+          <button onclick="copyAsImage(this)">&#128203; Copy</button>
+          <button onclick="downloadPNG(this)">&#128444; PNG</button>
+          <button onclick="downloadPDF(this)">&#128196; PDF</button>
+        </div>
+        <button class="toolbar-toggle" onclick="this.parentElement.classList.toggle('expanded')" title="Export options">&#8943;</button>
+      </div>
+    </div>
+    <p class="subtitle">Full-stack luxury e-commerce &bull; React 19 + Node.js + Groq Llama 3.3 + Pinecone</p>
+  </div>
+
+  <!-- Diagram -->
+  <div class="diagram-container">
+    <svg viewBox="0 0 960 510">
+      <defs>
+        <!-- Generic arrowhead -->
+        <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#64748b"/>
+        </marker>
+        <!-- Cyan arrowhead -->
+        <marker id="arr-cyan" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#22d3ee"/>
+        </marker>
+        <!-- Emerald arrowhead -->
+        <marker id="arr-em" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#34d399"/>
+        </marker>
+        <!-- Violet arrowhead -->
+        <marker id="arr-vi" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#a78bfa"/>
+        </marker>
+        <!-- Orange arrowhead -->
+        <marker id="arr-or" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#fb923c"/>
+        </marker>
+        <!-- Amber arrowhead -->
+        <marker id="arr-am" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#fbbf24"/>
+        </marker>
+        <!-- Background grid -->
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+
+      <!-- Background -->
+      <rect width="960" height="510" fill="url(#grid)"/>
+
+      <!-- ===================== ARROWS (drawn first, behind boxes) ===================== -->
+
+      <!-- 1. User to Cloudflare Pages -->
+      <line x1="112" y1="240" x2="140" y2="240" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+      <text x="126" y="233" fill="#22d3ee" font-size="7.5" text-anchor="middle" font-family="JetBrains Mono, monospace">HTTPS</text>
+
+      <!-- 2. Cloudflare SPA to Express API -->
+      <path d="M 298 232 L 315 232 L 315 215 L 330 215" fill="none" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+      <text x="314" y="227" fill="#22d3ee" font-size="7.5" text-anchor="middle" font-family="JetBrains Mono, monospace">REST / SSE</text>
+
+      <!-- 3. API to data bus horizontal connector -->
+      <line x1="485" y1="219" x2="518" y2="219" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- 4. Vertical data bus line -->
+      <line x1="522" y1="145" x2="522" y2="373" stroke="#334155" stroke-width="1" stroke-dasharray="3,3"/>
+
+      <!-- 5. Bus branches to data services -->
+      <line x1="522" y1="145" x2="553" y2="145" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arr-vi)"/>
+      <line x1="522" y1="219" x2="553" y2="219" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arr-vi)"/>
+      <line x1="522" y1="294" x2="553" y2="294" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-em)"/>
+      <line x1="522" y1="369" x2="553" y2="369" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arr-am)"/>
+
+      <!-- 6. API to Groq (route above all columns) -->
+      <path d="M 414 190 L 414 55 L 842 55 L 842 118" fill="none" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr-or)"/>
+      <text x="628" y="49" fill="#fb923c" font-size="7.5" text-anchor="middle" font-family="JetBrains Mono, monospace">Streaming Inference</text>
+
+      <!-- 7. API to Pinecone (route above, slightly lower) -->
+      <path d="M 414 190 L 414 66 L 842 66 L 842 189" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr-vi)"/>
+      <text x="628" y="78" fill="#a78bfa" font-size="7.5" text-anchor="middle" font-family="JetBrains Mono, monospace">Vector Query</text>
+
+      <!-- 8. NVIDIA to Pinecone (embeddings feed vector DB, upward arrow) -->
+      <line x1="842" y1="260" x2="842" y2="244" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arr-vi)"/>
+      <text x="870" y="254" fill="#a78bfa" font-size="7.5" font-family="JetBrains Mono, monospace">embed</text>
+
+      <!-- ===================== BOXES (drawn after arrows to mask them) ===================== -->
+
+      <!-- USER -->
+      <rect x="18" y="212" width="94" height="56" rx="6" fill="#0f172a"/>
+      <rect x="18" y="212" width="94" height="56" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+      <text x="65" y="236" fill="white" font-size="11" font-weight="600" text-anchor="middle" font-family="JetBrains Mono, monospace">Browser</text>
+      <text x="65" y="252" fill="#94a3b8" font-size="9" text-anchor="middle" font-family="JetBrains Mono, monospace">/ Mobile</text>
+
+      <!-- ===== CLOUDFLARE PAGES BOUNDARY ===== -->
+      <rect x="140" y="92" width="158" height="296" rx="10" fill="rgba(120,53,15,0.04)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="6,3"/>
+      <text x="152" y="107" fill="#fbbf24" font-size="8.5" font-weight="600" font-family="JetBrains Mono, monospace">Cloudflare Pages</text>
+
+      <!-- React 19 + Vite 7 -->
+      <rect x="153" y="114" width="132" height="50" rx="6" fill="#0f172a"/>
+      <rect x="153" y="114" width="132" height="50" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="219" y="135" fill="white" font-size="10" font-weight="600" text-anchor="middle" font-family="JetBrains Mono, monospace">React 19 + Vite 7</text>
+      <text x="219" y="151" fill="#94a3b8" font-size="8.5" text-anchor="middle" font-family="JetBrains Mono, monospace">SPA · next-themes</text>
+
+      <!-- Zustand + Router -->
+      <rect x="153" y="178" width="132" height="50" rx="6" fill="#0f172a"/>
+      <rect x="153" y="178" width="132" height="50" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="219" y="199" fill="white" font-size="10" font-weight="600" text-anchor="middle" font-family="JetBrains Mono, monospace">Zustand + Router</text>
+      <text x="219" y="215" fill="#94a3b8" font-size="8.5" text-anchor="middle" font-family="JetBrains Mono, monospace">State Management</text>
+
+      <!-- shadcn/ui v4 -->
+      <rect x="153" y="242" width="132" height="50" rx="6" fill="#0f172a"/>
+      <rect x="153" y="242" width="132" height="50" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="219" y="263" fill="white" font-size="10" font-weight="600" text-anchor="middle" font-family="JetBrains Mono, monospace">shadcn/ui v4</text>
+      <text x="219" y="279" fill="#94a3b8" font-size="8.5" text-anchor="middle" font-family="JetBrains Mono, monospace">Tailwind CSS v4</text>
+
+      <!-- ChatBot SSE -->
+      <rect x="153" y="306" width="132" height="50" rx="6" fill="#0f172a"/>
+      <rect x="153" y="306" width="132" height="50" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="219" y="327" fill="white" font-size="10" font-weight="600" text-anchor="middle" font-family="JetBrains Mono, monospace">ChatBot</text>
+      <text x="219" y="343" fill="#94a3b8" font-size="8.5" text-anchor="middle" font-family="JetBrains Mono, monospace">SSE Streaming</text>
+
+      <!-- ===== RENDER BOUNDARY ===== -->
+      <rect x="330" y="168" width="168" height="194" rx="10" fill="rgba(6,78,59,0.04)" stroke="#34d399" stroke-width="1" stroke-dasharray="6,3"/>
+      <text x="342" y="183" fill="#34d399" font-size="8.5" font-weight="600" font-family="JetBrains Mono, monospace">Render  Node.js</text>
+
+      <!-- Express API -->
+      <rect x="343" y="190" width="142" height="58" rx="6" fill="#0f172a"/>
+      <rect x="343" y="190" width="142" height="58" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+      <text x="414" y="214" fill="white" font-size="11" font-weight="600" text-anchor="middle" font-family="JetBrains Mono, monospace">Express API</text>
+      <text x="414" y="232" fill="#94a3b8" font-size="8.5" text-anchor="middle" font-family="JetBrains Mono, monospace">Node.js  Port 5000</text>
+
+      <!-- JWT Auth Middleware -->
+      <rect x="343" y="264" width="142" height="50" rx="6" fill="#0f172a"/>
+      <rect x="343" y="264" width="142" height="50" rx="6" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1.5"/>
+      <text x="414" y="285" fill="white" font-size="10" font-weight="600" text-anchor="middle" font-family="JetBrains Mono, monospace">JWT Auth</text>
+      <text x="414" y="301" fill="#94a3b8" font-size="8.5" text-anchor="middle" font-family="JetBrains Mono, monospace">Access + Refresh</text>
+
+      <!-- ===== DATA SERVICES ===== -->
+
+      <!-- MongoDB -->
+      <rect x="553" y="118" width="138" height="55" rx="6" fill="#0f172a"/>
+      <rect x="553" y="118" width="138" height="55" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+      <text x="622" y="141" fill="white" font-size="11" font-weight="600" text-anchor="middle" font-family="JetBrains Mono, monospace">MongoDB</text>
+      <text x="622" y="157" fill="#94a3b8" font-size="8.5" text-anchor="middle" font-family="JetBrains Mono, monospace">Mongoose ODM</text>
+
+      <!-- Redis -->
+      <rect x="553" y="192" width="138" height="55" rx="6" fill="#0f172a"/>
+      <rect x="553" y="192" width="138" height="55" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+      <text x="622" y="215" fill="white" font-size="11" font-weight="600" text-anchor="middle" font-family="JetBrains Mono, monospace">Redis</text>
+      <text x="622" y="231" fill="#94a3b8" font-size="8.5" text-anchor="middle" font-family="JetBrains Mono, monospace">Sessions + Tokens</text>
+
+      <!-- Stripe -->
+      <rect x="553" y="266" width="138" height="55" rx="6" fill="#0f172a"/>
+      <rect x="553" y="266" width="138" height="55" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+      <text x="622" y="289" fill="white" font-size="11" font-weight="600" text-anchor="middle" font-family="JetBrains Mono, monospace">Stripe</text>
+      <text x="622" y="305" fill="#94a3b8" font-size="8.5" text-anchor="middle" font-family="JetBrains Mono, monospace">Payments + Coupons</text>
+
+      <!-- Cloudinary -->
+      <rect x="553" y="340" width="138" height="55" rx="6" fill="#0f172a"/>
+      <rect x="553" y="340" width="138" height="55" rx="6" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+      <text x="622" y="363" fill="white" font-size="11" font-weight="600" text-anchor="middle" font-family="JetBrains Mono, monospace">Cloudinary</text>
+      <text x="622" y="379" fill="#94a3b8" font-size="8.5" text-anchor="middle" font-family="JetBrains Mono, monospace">Image Storage</text>
+
+      <!-- ===== AI SERVICES BOUNDARY ===== -->
+      <rect x="743" y="100" width="198" height="228" rx="10" fill="rgba(251,146,60,0.04)" stroke="#fb923c" stroke-width="1" stroke-dasharray="6,3"/>
+      <text x="755" y="115" fill="#fb923c" font-size="8.5" font-weight="600" font-family="JetBrains Mono, monospace">AI Services</text>
+
+      <!-- Groq / Llama 3.3 -->
+      <rect x="756" y="118" width="172" height="55" rx="6" fill="#0f172a"/>
+      <rect x="756" y="118" width="172" height="55" rx="6" fill="rgba(251,146,60,0.3)" stroke="#fb923c" stroke-width="1.5"/>
+      <text x="842" y="141" fill="white" font-size="11" font-weight="600" text-anchor="middle" font-family="JetBrains Mono, monospace">Groq</text>
+      <text x="842" y="157" fill="#94a3b8" font-size="8.5" text-anchor="middle" font-family="JetBrains Mono, monospace">Llama 3.3 70B</text>
+
+      <!-- Pinecone -->
+      <rect x="756" y="189" width="172" height="55" rx="6" fill="#0f172a"/>
+      <rect x="756" y="189" width="172" height="55" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+      <text x="842" y="212" fill="white" font-size="11" font-weight="600" text-anchor="middle" font-family="JetBrains Mono, monospace">Pinecone</text>
+      <text x="842" y="228" fill="#94a3b8" font-size="8.5" text-anchor="middle" font-family="JetBrains Mono, monospace">Vector Database</text>
+
+      <!-- NVIDIA NV-EmbedQA -->
+      <rect x="756" y="260" width="172" height="55" rx="6" fill="#0f172a"/>
+      <rect x="756" y="260" width="172" height="55" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+      <text x="842" y="281" fill="white" font-size="10" font-weight="600" text-anchor="middle" font-family="JetBrains Mono, monospace">NVIDIA NV-EmbedQA</text>
+      <text x="842" y="297" fill="#94a3b8" font-size="8.5" text-anchor="middle" font-family="JetBrains Mono, monospace">1024-dim Embeddings</text>
+
+      <!-- ===================== LEGEND ===================== -->
+      <!-- Title -->
+      <text x="40" y="432" fill="white" font-size="9" font-weight="600" font-family="JetBrains Mono, monospace">Legend</text>
+
+      <!-- Row 1 -->
+      <rect x="40" y="440" width="14" height="10" rx="2" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1"/>
+      <text x="60" y="449" fill="#94a3b8" font-size="8" font-family="JetBrains Mono, monospace">Frontend</text>
+
+      <rect x="145" y="440" width="14" height="10" rx="2" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1"/>
+      <text x="165" y="449" fill="#94a3b8" font-size="8" font-family="JetBrains Mono, monospace">Backend</text>
+
+      <rect x="248" y="440" width="14" height="10" rx="2" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1"/>
+      <text x="268" y="449" fill="#94a3b8" font-size="8" font-family="JetBrains Mono, monospace">Database</text>
+
+      <rect x="355" y="440" width="14" height="10" rx="2" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1"/>
+      <text x="375" y="449" fill="#94a3b8" font-size="8" font-family="JetBrains Mono, monospace">Cloud Service</text>
+
+      <!-- Row 2 -->
+      <rect x="40" y="458" width="14" height="10" rx="2" fill="rgba(251,146,60,0.3)" stroke="#fb923c" stroke-width="1"/>
+      <text x="60" y="467" fill="#94a3b8" font-size="8" font-family="JetBrains Mono, monospace">AI Service</text>
+
+      <rect x="145" y="458" width="14" height="10" rx="2" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1"/>
+      <text x="165" y="467" fill="#94a3b8" font-size="8" font-family="JetBrains Mono, monospace">Security</text>
+
+      <rect x="248" y="458" width="14" height="10" rx="2" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1"/>
+      <text x="268" y="467" fill="#94a3b8" font-size="8" font-family="JetBrains Mono, monospace">External</text>
+
+      <rect x="355" y="458" width="14" height="10" rx="2" fill="rgba(120,53,15,0.04)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="4,2"/>
+      <text x="375" y="467" fill="#94a3b8" font-size="8" font-family="JetBrains Mono, monospace">Deployment Zone</text>
+
+      <!-- Row 3: arrow types -->
+      <line x1="40" y1="482" x2="54" y2="482" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+      <text x="60" y="486" fill="#94a3b8" font-size="8" font-family="JetBrains Mono, monospace">HTTP / REST</text>
+
+      <line x1="145" y1="482" x2="159" y2="482" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr-or)"/>
+      <text x="165" y="486" fill="#94a3b8" font-size="8" font-family="JetBrains Mono, monospace">AI / SSE Stream</text>
+
+      <line x1="248" y1="482" x2="262" y2="482" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr-vi)"/>
+      <text x="268" y="486" fill="#94a3b8" font-size="8" font-family="JetBrains Mono, monospace">Vector / Embed</text>
+
+    </svg>
+  </div>
+
+  <!-- Info Cards -->
+  <div class="cards">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-dot cyan"></div>
+        <h3>Frontend</h3>
+      </div>
+      <ul>
+        <li>&#8226; React 19 + Vite 7 SPA on Cloudflare Pages</li>
+        <li>&#8226; shadcn/ui v4 with Base UI primitives</li>
+        <li>&#8226; Tailwind CSS v4 with OKLCH gold theme</li>
+        <li>&#8226; Zustand 5 state + React Router v7</li>
+        <li>&#8226; next-themes with View Transitions API</li>
+        <li>&#8226; SSE client for real-time chat streaming</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-dot emerald"></div>
+        <h3>Backend &amp; Data</h3>
+      </div>
+      <ul>
+        <li>&#8226; Express API on Render (Node.js)</li>
+        <li>&#8226; MongoDB Atlas + Mongoose ODM</li>
+        <li>&#8226; Redis (Upstash) for JWT + chat sessions</li>
+        <li>&#8226; JWT access (15 min) + refresh (7 day) tokens</li>
+        <li>&#8226; Stripe checkout + reward coupon system</li>
+        <li>&#8226; Cloudinary for product image hosting</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-dot orange"></div>
+        <h3>AI Pipeline</h3>
+      </div>
+      <ul>
+        <li>&#8226; Groq Llama 3.3 70B for response streaming</li>
+        <li>&#8226; NVIDIA NV-EmbedQA-E5-v5 (1024-dim)</li>
+        <li>&#8226; Pinecone for semantic product search</li>
+        <li>&#8226; Intent detection (search / greeting / off-topic)</li>
+        <li>&#8226; 12-turn conversation history in Redis</li>
+        <li>&#8226; Keyword fallback when vector search is down</li>
+      </ul>
+    </div>
+  </div>
+
+  <p class="footer">Luxe &bull; luxe.spacesdrive.cc &bull; React 19 + Node.js + Groq + Pinecone</p>
+
+</div>
+
+<script>
+  async function copyAsImage(btn) {
+    const orig = btn.textContent;
+    try {
+      const el = document.getElementById('report-container');
+      const r = el.getBoundingClientRect();
+      const pad = 32;
+      const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      btn.textContent = 'Copied!';
+    } catch { btn.textContent = 'Failed'; }
+    setTimeout(() => btn.textContent = orig, 2000);
+  }
+  async function downloadPNG(btn) {
+    const orig = btn.textContent; btn.textContent = '...';
+    try {
+      const el = document.getElementById('report-container');
+      const r = el.getBoundingClientRect();
+      const pad = 32;
+      const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+      const link = document.createElement('a'); link.download = 'luxe-architecture.png'; link.href = canvas.toDataURL('image/png'); link.click();
+      btn.textContent = 'Done!';
+    } catch { btn.textContent = 'Failed'; }
+    setTimeout(() => btn.textContent = orig, 2000);
+  }
+  async function downloadPDF(btn) {
+    const orig = btn.textContent; btn.textContent = '...';
+    try {
+      const el = document.getElementById('report-container');
+      const r = el.getBoundingClientRect();
+      const pad = 32;
+      const canvas = await html2canvas(document.body, { backgroundColor: '#020617', scale: 2, useCORS: true, ignoreElements: (e) => e.classList && e.classList.contains('toolbar'), x: r.left + window.scrollX - pad, y: r.top + window.scrollY - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const orientation = canvas.width > canvas.height ? 'landscape' : 'portrait';
+      const pdf = new jsPDF({ orientation, unit: 'px', format: [canvas.width, canvas.height], hotfixes: ['px_scaling'] });
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save('luxe-architecture.pdf');
+      btn.textContent = 'Done!';
+    } catch { btn.textContent = 'Failed'; }
+    setTimeout(() => btn.textContent = orig, 2000);
+  }
+</script>
+</body>
+</html>

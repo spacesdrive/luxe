@@ -96,86 +96,46 @@ Register a free account at the live site to browse products and test the AI assi
 
 ## Architecture
 
-```
-                          Browser
-                             |
-               +-------------+-------------+
-               |                           |
-      Cloudflare Pages             Render (Node.js)
-      (React + Vite SPA)                  |
-               |                   +-------+-------+
-               | HTTPS REST/SSE    |               |
-               +-----------------> Express API     |
-                                   |               |
-                           +-------+-------+       |
-                           |               |       |
-                        MongoDB         Redis   Cloudinary
-                        (data)     (tokens +   (images)
-                                    sessions)
-                           |
-                   +-------+-------+
-                   |               |
-                 Groq           Pinecone
-              (Llama 3.3)     (vector DB)
-                   |               |
-                NVIDIA          semantic
-              embeddings         search
-```
+The interactive architecture diagram shows all services, data flows, and AI pipeline connections with color-coded component types and export options (PNG / PDF).
+
+**[View Interactive Architecture Diagram](docs/architecture.html)**
+
+> Open `docs/architecture.html` in any browser. Use the `...` button in the top-right corner to export as PNG or PDF.
+
+### System Overview
+
+| Layer | Technology | Deployment |
+|---|---|---|
+| Frontend SPA | React 19 + Vite 7 + shadcn/ui v4 | Cloudflare Pages |
+| REST + SSE API | Node.js + Express | Render |
+| Primary Database | MongoDB + Mongoose | MongoDB Atlas |
+| Session Cache | Redis (ioredis) | Upstash |
+| Payments | Stripe | Stripe Cloud |
+| Images | Cloudinary | Cloudinary CDN |
+| LLM Inference | Groq (Llama 3.3 70B) | Groq Cloud |
+| Vector Search | Pinecone | Pinecone Cloud |
+| Embeddings | NVIDIA NV-EmbedQA-E5-v5 | NVIDIA API |
 
 ### AI Chat Flow
 
-```
-User sends message
-        |
-        v
-Intent analysis via Groq
-(greeting / product search / store_info / off_topic)
-        |
-        v
-Generate query embedding (NVIDIA NV-EmbedQA-E5-v5)
-        |
-        v
-Query Pinecone for top 8 semantic matches
-        |
-  (if unavailable)
-        v
-Keyword fallback via MongoDB regex search
-        |
-        v
-Filter by budget and category if specified
-        |
-        v
-Stream response via Groq Llama 3.3 70B over SSE
-        |
-        v
-Extract structured data (product IDs, cart intent, comparison pairs)
-        |
-        v
-Persist conversation to Redis (12-turn rolling window, 1h TTL)
-```
+1. User message arrives at `POST /api/chat`
+2. Intent is classified (product search / greeting / store info / off-topic) via Groq
+3. Query embedding is generated via NVIDIA NV-EmbedQA-E5-v5 (1024 dimensions)
+4. Pinecone is queried for the top 8 semantic matches
+5. If Pinecone is unavailable, MongoDB keyword search is used as fallback
+6. Budget and category filters are applied to the matched products
+7. Groq Llama 3.3 70B streams a conversational response token-by-token over SSE
+8. A second Groq call extracts structured data (product IDs, cart intents, comparison pairs)
+9. Conversation history is saved to Redis with a 12-turn rolling window (1h TTL)
 
 ### Authentication Flow
 
-```
-POST /api/auth/signup or /login
-        |
-        v
-Issue access token (15 min) + refresh token (7 days)
-        |
-        +---> Store refresh token in Redis
-        +---> Set both as HTTP-only cookies
-                    (sameSite: "none" on cross-origin, "strict" on same-origin)
-        |
-        v
-Protected routes: verify access token via middleware
-        |
-  (token expired)
-        v
-Client calls POST /api/auth/refresh
-        |
-        v
-Validate Redis-stored refresh token -> issue new access token
-```
+1. Signup or login issues an access token (15 min) and a refresh token (7 days)
+2. Refresh token is stored in Redis; both tokens are set as HTTP-only cookies
+3. `sameSite` is `"none"` for cross-origin deployments, `"strict"` for same-origin
+4. Protected routes verify the access token via JWT middleware
+5. When the access token expires, the client calls `POST /api/auth/refresh`
+6. The stored Redis token is validated and a new access token is issued
 
 ---
 
