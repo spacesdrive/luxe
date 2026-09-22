@@ -1,0 +1,89 @@
+name: Deploy Backend (Cloudflare Workers)
+
+# The frontend (Cloudflare Pages, project "luxe-frontend") is already wired
+# to auto-deploy from this repo via Cloudflare's own Git integration, scoped
+# to the `frontend/` directory — so it redeploys on its own whenever
+# frontend/** changes, without needing a workflow here. This workflow only
+# covers the backend (Cloudflare Workers), which has no such integration.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Build check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Validate the Worker bundles correctly
+        working-directory: backend
+        run: npx wrangler deploy --dry-run
+
+  deploy:
+    name: Deploy
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: backend
+          secrets: |
+            MONGO_DB_URI
+            UPSTASH_REDIS_REST_URL
+            UPSTASH_REDIS_REST_TOKEN
+            ACCESS_TOKEN_SECRET
+            REFRESH_TOKEN_SECRET
+            CLOUDINARY_API_KEY
+            CLOUDINARY_API_SECRET
+            STRIPE_SECRET_KEY
+            GROQ_API_KEY
+            NVIDIA_API_KEY
+            PINECONE_API_KEY
+        env:
+          MONGO_DB_URI: ${{ secrets.MONGO_DB_URI }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+          ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
+          REFRESH_TOKEN_SECRET: ${{ secrets.REFRESH_TOKEN_SECRET }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}

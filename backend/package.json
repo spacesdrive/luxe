@@ -1,0 +1,23 @@
+{
+  "name": "luxe-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "wrangler deploy --dry-run --outdir dist-check"
+  },
+  "dependencies": {
+    "@pinecone-database/pinecone": "^7.1.0",
+    "@upstash/redis": "^1.39.0",
+    "bcryptjs": "^2.4.3",
+    "groq-sdk": "^0.37.0",
+    "hono": "^4.13.8",
+    "mongoose": "^9.10.2",
+    "stripe": "^16.8.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.136.3"
+  }
+}

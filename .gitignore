@@ -1,6 +1,9 @@
 .env
+.dev.vars
 node_modules
 .env.production
 scripts/env/
 skills-lock.json
 .agents
+.wrangler
+dist-check

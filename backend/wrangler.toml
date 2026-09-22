@@ -1,0 +1,19 @@
+name = "luxe-api"
+main = "src/index.js"
+compatibility_date = "2026-09-22"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+# Non-secret configuration. Actual secrets (MONGO_DB_URI, UPSTASH_REDIS_REST_URL,
+# UPSTASH_REDIS_REST_TOKEN, ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET,
+# CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, STRIPE_SECRET_KEY, GROQ_API_KEY,
+# NVIDIA_API_KEY, PINECONE_API_KEY) are pushed via `wrangler secret put` /
+# the CI pipeline and must never be committed here.
+[vars]
+NODE_ENV = "production"
+FRONTEND_URL = "https://luxe.spacesdrive.cc"
+BACKEND_URL = "https://luxe-api.ujjwalkrai.workers.dev"
+CLOUDINARY_CLOUD_NAME = "dbh4azua9"
+PINECONE_INDEX = "luxe-products"
