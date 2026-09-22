@@ -49,14 +49,16 @@ const OFF_TOPIC_RESPONSE = {
 export const analyzeIntent = async (message) => {
     try {
         const completion = await groq.chat.completions.create({
-            model: "llama-3.1-8b-instant",
+            model: "openai/gpt-oss-20b",
             messages: [
                 { role: "system", content: INTENT_SYSTEM_PROMPT },
                 { role: "user", content: message },
             ],
             temperature: 0.1,
-            max_tokens: 200,
+            max_tokens: 300,
             response_format: { type: "json_object" },
+            reasoning_effort: "low",
+            include_reasoning: false,
         });
 
         const result = JSON.parse(completion.choices[0].message.content);
@@ -66,7 +68,8 @@ export const analyzeIntent = async (message) => {
             budget: result.budget || null,
             category: result.category || null,
         };
-    } catch {
+    } catch (error) {
+        console.error(`Intent classification failed: ${error.message}`);
         return {
             intent: "product_search",
             correctedQuery: message,

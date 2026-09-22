@@ -9,13 +9,13 @@ const groq = new Proxy({}, {
 });
 
 const STREAM_MODELS = [
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
 ];
 
 const JSON_MODELS = [
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
 ];
 
 const buildProductContext = (products) =>
@@ -100,8 +100,10 @@ ${buildProductContext(products)}`;
                     ...messages,
                 ],
                 temperature: 0.45,
-                max_tokens: 512,
+                max_tokens: 700,
                 stream: true,
+                reasoning_effort: "low",
+                include_reasoning: false,
             });
 
             let fullText = "";
@@ -149,8 +151,10 @@ Extract the structured data from this conversation.`;
                     { role: "user", content: userPrompt },
                 ],
                 temperature: 0.1,
-                max_tokens: 256,
+                max_tokens: 400,
                 response_format: { type: "json_object" },
+                reasoning_effort: "low",
+                include_reasoning: false,
             });
 
             const parsed = JSON.parse(completion.choices[0].message.content);
