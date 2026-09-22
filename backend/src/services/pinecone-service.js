@@ -1,34 +1,18 @@
 import { Pinecone } from "@pinecone-database/pinecone";
 
-let pineconeClient = null;
-let pineconeIndex = null;
-let indexHost = null;
-
-const getPineconeClient = (env) => {
-    if (!pineconeClient) {
-        pineconeClient = new Pinecone({
-            apiKey: env.PINECONE_API_KEY,
-        });
-    }
-    return pineconeClient;
-};
+// Built fresh per call rather than cached at module scope — a warm Worker
+// isolate can outlive a secret rotation, and a cached client/host would keep
+// using whatever env it saw on its first call (see lib/redis.js for the same
+// issue caught in practice).
+const getPineconeClient = (env) => new Pinecone({ apiKey: env.PINECONE_API_KEY });
 
 const getIndexHost = async (env) => {
-    if (indexHost) return indexHost;
-
     const pc = getPineconeClient(env);
     const description = await pc.describeIndex(env.PINECONE_INDEX);
-    indexHost = description.host;
-    console.log(`Pinecone index host: ${indexHost}`);
-    return indexHost;
+    return description.host;
 };
 
-const getPineconeIndex = async (env) => {
-    if (pineconeIndex) return pineconeIndex;
-    const pc = getPineconeClient(env);
-    pineconeIndex = pc.index(env.PINECONE_INDEX);
-    return pineconeIndex;
-};
+const getPineconeIndex = (env) => getPineconeClient(env).index(env.PINECONE_INDEX);
 
 export const upsertProductVector = async (env, productId, embedding, metadata) => {
     if (!embedding || !Array.isArray(embedding) || embedding.length === 0) {
