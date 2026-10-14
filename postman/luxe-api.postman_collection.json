@@ -1,0 +1,1623 @@
+{
+  "info": {
+    "_postman_id": "ddb96395-7d9c-4221-a10c-cdcead650abf",
+    "name": "Luxe E-Commerce API",
+    "description": "All routes of the Luxe backend. The Express server (`backend/server.js`) and the Cloudflare Worker (`backend/src/index.js`) expose the same routes.\n\n## Quick start\n1. Pick an environment (top-right): **Luxe - Production**, **Luxe - Local (Express :5000)** or **Luxe - Local (Worker :8787)**.\n2. Run the collection in order (**Run collection**), or click through folders 00 → 08.\n3. Auth is cookie based. After Signup/Login, Postman's cookie jar sends `accessToken`/`refreshToken` automatically.\n\n## Variables\nScripts fill `productId`, `category`, `stripeSessionId` and `couponCode` as you go. `testEmail` is regenerated on every Signup.\n\nSet `adminEmail`/`adminPassword` in the environment to enable folder 07.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00 - Health",
+      "description": "Liveness check. No auth, no database.",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": []
+            },
+            "description": "Returns `{ status: \"ok\" }` when the API is running."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"status is ok\", () => pm.expect(pm.response.json().status).to.eql(\"ok\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Auth",
+      "description": "Authentication is **cookie based**. `signup`, `login` and `refresh-token` set httpOnly `accessToken` (15 min) and `refreshToken` (7 days) cookies. Postman stores them in its cookie jar and sends them automatically on later requests to the same host; no Authorization header is needed.\n\nWhen you get `401 Unauthorized - Access token expired`, run **Refresh Token**.",
+      "item": [
+        {
+          "name": "Signup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "signup"
+              ]
+            },
+            "description": "**Auth:** none\n\nRegister a new user and log them in (sets auth cookies).\n\n**Body:** `name`, `email`, `password` (8-64 chars, not a common password).\n\nThe pre-request script generates a unique `testEmail` each run so signup never collides. Replace `{{testEmail}}` with a real address to sign up manually.\n\n**Responses:** `201` user object, `400 User already exists`, `500` validation error.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"{{testName}}\",\n    \"email\": \"{{testEmail}}\",\n    \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Fresh email each run so signup does not collide with an existing user",
+                  "pm.collectionVariables.set(\"testEmail\", \"postman+\" + Date.now() + \"@luxe.test\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "const u = pm.response.json();",
+                  "pm.test(\"returns user with role 'user'\", () => { pm.expect(u).to.have.property(\"_id\"); pm.expect(u.role).to.eql(\"user\"); });",
+                  "pm.collectionVariables.set(\"userId\", u._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "**Auth:** none\n\nLog in with email + password. Sets `accessToken` and `refreshToken` cookies.\n\n**Responses:** `200` user object, `400 Invalid email or password`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{testEmail}}\",\n    \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"email matches\", () => pm.expect(pm.response.json().email).to.eql(pm.collectionVariables.get(\"testEmail\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - wrong password (negative)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "**Auth:** none\n\nShows the error you get with bad credentials. Does not touch the existing cookies.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{testEmail}}\",\n    \"password\": \"definitely-wrong-pw\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"message\", () => pm.expect(pm.response.json().message).to.eql(\"Invalid email or password\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "profile"
+              ]
+            },
+            "description": "**Auth:** accessToken cookie (log in first)\n\nReturns the logged-in user (password excluded), including `cartItems` and `role`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"no password in response\", () => pm.expect(pm.response.json()).to.not.have.property(\"password\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh-token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh-token"
+              ]
+            },
+            "description": "**Auth:** refreshToken cookie\n\nIssues a new 15-minute `accessToken` cookie from the `refreshToken` cookie. The token must match the one stored in Redis.\n\n**Responses:** `200 Token refreshed successfully`, `401 No refresh token provided` / `Invalid refresh token`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"message\", () => pm.expect(pm.response.json().message).to.eql(\"Token refreshed successfully\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Products (Public)",
+      "description": "Read-only product endpoints. No login required.",
+      "item": [
+        {
+          "name": "Get All Products (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "all"
+              ]
+            },
+            "description": "**Auth:** none\n\nEvery product in the store: `{ products: [...] }`.\n\nThe test script saves the first product's `_id`, `category`, `name`, `price` and `image` into collection variables. Later requests use them, so **run this first**."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const { products } = pm.response.json();",
+                  "pm.test(\"products is an array\", () => pm.expect(products).to.be.an(\"array\"));",
+                  "if (products.length) {",
+                  "    // Prefer a product with an image (Stripe needs one) and the lowest price",
+                  "    const p = [...products].filter(x => x.image).sort((a, b) => a.price - b.price)[0] || products[0];",
+                  "    pm.collectionVariables.set(\"productId\", p._id);",
+                  "    pm.collectionVariables.set(\"productName\", p.name);",
+                  "    pm.collectionVariables.set(\"productPrice\", p.price);",
+                  "    pm.collectionVariables.set(\"productImage\", p.image);",
+                  "    pm.collectionVariables.set(\"category\", p.category);",
+                  "    pm.collectionVariables.set(\"productSize\", (p.sizes && p.sizes[0]) || (p.shoeSizes && p.shoeSizes[0]) || \"\");",
+                  "    console.log(\"Using product\", p.name, p._id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Featured Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/featured",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "featured"
+              ]
+            },
+            "description": "**Auth:** none\n\nProducts with `isFeatured: true`. Served from the Redis cache (`featured_products`) when available. Returns a bare array."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"array\", () => pm.expect(pm.response.json()).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Products by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/category/{{category}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "category",
+                "{{category}}"
+              ]
+            },
+            "description": "**Auth:** none\n\nCase-insensitive exact match on `category`. Examples: `electronics`, `clothing`, `accessories`, `jewelry`, `home`, `fragrance`.\n\nReturns `{ products: [...] }`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"products array\", () => pm.expect(pm.response.json().products).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Recommended Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/recommendations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "recommendations"
+              ]
+            },
+            "description": "**Auth:** none\n\n4 random products (`$sample`). Returns a bare array."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"up to 4 items\", () => pm.expect(pm.response.json().length).to.be.at.most(4));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{productId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{productId}}"
+              ]
+            },
+            "description": "**Auth:** none\n\nSingle product by Mongo `_id`. `404 Product not found` if it does not exist."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"productId\")) {",
+                  "    console.log(\"Skipping - no productId yet. Run 'Products > Get All Products (Public)' first.\");",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"matching id\", () => pm.expect(pm.response.json()._id).to.eql(pm.collectionVariables.get(\"productId\")));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Cart",
+      "description": "Cart lives on the user document (`user.cartItems`). All routes require login. Items are keyed by `productId` + `selectedSize`.",
+      "item": [
+        {
+          "name": "Add to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cart",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cart"
+              ]
+            },
+            "description": "**Auth:** accessToken cookie\n\nAdds 1 unit of a product. If the same product + size is already in the cart, its quantity goes up by 1.\n\n**Body:** `productId` (required), `selectedSize` (optional, e.g. `\"M\"` or `\"UK 8\"`).\n\nReturns the raw `cartItems` array.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"productId\": \"{{productId}}\",\n    \"selectedSize\": \"{{productSize}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"productId\")) {",
+                  "    console.log(\"Skipping - no productId yet. Run 'Products > Get All Products (Public)' first.\");",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"cart has the product\", () => pm.expect(pm.response.json().some(i => i.product === pm.collectionVariables.get(\"productId\"))).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Cart",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cart",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cart"
+              ]
+            },
+            "description": "**Auth:** accessToken cookie\n\nCart items joined with full product data, plus `quantity` and `selectedSize`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"array\", () => pm.expect(pm.response.json()).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Cart Quantity",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cart/{{productId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cart",
+                "{{productId}}"
+              ]
+            },
+            "description": "**Auth:** accessToken cookie\n\nSets the quantity of a cart line. `:id` is the **productId**. Send the same `selectedSize` that was used when adding.\n\n`quantity: 0` removes the line. `404 Product not found` if that product + size is not in the cart.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"quantity\": 3,\n    \"selectedSize\": \"{{productSize}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"productId\")) {",
+                  "    console.log(\"Skipping - no productId yet. Run 'Products > Get All Products (Public)' first.\");",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const line = pm.response.json().find(i => i.product === pm.collectionVariables.get(\"productId\"));",
+                  "pm.test(\"quantity is 3\", () => pm.expect(line.quantity).to.eql(3));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove One Product from Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cart",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cart"
+              ]
+            },
+            "description": "**Auth:** accessToken cookie\n\nRemoves a single product + size line from the cart.\n\n**Body:** `productId`, `selectedSize`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"productId\": \"{{productId}}\",\n    \"selectedSize\": \"{{productSize}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"productId\")) {",
+                  "    console.log(\"Skipping - no productId yet. Run 'Products > Get All Products (Public)' first.\");",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"product removed\", () => pm.expect(pm.response.json().some(i => i.product === pm.collectionVariables.get(\"productId\"))).to.be.false);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cart",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cart"
+              ]
+            },
+            "description": "**Auth:** accessToken cookie\n\nSend an empty JSON body (no `productId`) to empty the whole cart.\n\nThe body must still be valid JSON (`{}`), because the handler always parses it.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"cart empty\", () => pm.expect(pm.response.json()).to.have.lengthOf(0));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Payments (Stripe)",
+      "description": "Stripe Checkout flow:\n1. **Create Checkout Session** returns `{ id, url, totalAmount }`. Open `url` in a browser and pay (use a Stripe test card in test mode).\n2. **Checkout Success** with that session id creates the Order and deactivates any used coupon.\n\nOrders of $200 or more earn the user a 10% `GIFT…` coupon.",
+      "item": [
+        {
+          "name": "Create Checkout Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/create-checkout-session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "create-checkout-session"
+              ]
+            },
+            "description": "**Auth:** accessToken cookie\n\n**Body:**\n- `products`: array of `{ _id, name, price, image, quantity }` (`image` must be a public URL, because Stripe fetches it)\n- `couponCode`: optional; must belong to the logged-in user\n\nThe test saves `stripeSessionId` and `checkoutUrl`. Open `checkoutUrl` in a browser to finish the payment.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"products\": [\n        {\n            \"_id\": \"{{productId}}\",\n            \"name\": \"{{productName}}\",\n            \"price\": {{productPrice}},\n            \"image\": \"{{productImage}}\",\n            \"quantity\": 1\n        }\n    ],\n    \"couponCode\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"productId\")) {",
+                  "    console.log(\"Skipping - no productId yet. Run 'Products > Get All Products (Public)' first.\");",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test(\"has session id + url\", () => { pm.expect(r.id).to.match(/^cs_/); pm.expect(r.url).to.be.a(\"string\"); });",
+                  "pm.collectionVariables.set(\"stripeSessionId\", r.id);",
+                  "pm.collectionVariables.set(\"checkoutUrl\", r.url);",
+                  "console.log(\"Open to pay:\", r.url);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Checkout Success",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/checkout-success",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "checkout-success"
+              ]
+            },
+            "description": "**Auth:** accessToken cookie\n\nCall after Stripe redirects to `/purchase-success?session_id=...`.\n\n**Body:** `sessionId` (Stripe Checkout Session id).\n\n- `200 { success: true, orderId }` if the session is paid\n- `400 Payment not completed` if it has not been paid yet (expected in an automated run)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"sessionId\": \"{{stripeSessionId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"stripeSessionId\")) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is one of 200/400\", () => pm.expect(pm.response.code).to.be.oneOf([200, 400]));",
+                  "pm.test(\"has success flag\", () => pm.expect(pm.response.json()).to.have.property(\"success\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 - Coupons",
+      "description": "Each user can hold at most one active coupon (earned from orders of $200 or more).",
+      "item": [
+        {
+          "name": "Get My Coupon",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/coupons",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "coupons"
+              ]
+            },
+            "description": "**Auth:** accessToken cookie\n\nReturns the user's active coupon `{ code, discountPercentage, expirationDate, ... }`, or `null` if they have none."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "const c = pm.response.json();",
+                  "pm.collectionVariables.set(\"couponCode\", c && c.code ? c.code : \"\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validate Coupon",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/coupons/validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "coupons",
+                "validate"
+              ]
+            },
+            "description": "**Auth:** accessToken cookie\n\nChecks that a coupon code belongs to the user, is active and has not expired. An expired coupon is deactivated on the spot.\n\n**Body:** `code`.\n\n**Responses:** `200 { message, code, discountPercentage }`, `404 Coupon not found` / `Coupon expired`.\n\nIf the user has no coupon, the pre-request script sends a fake code, so `404` is the expected result.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"code\": \"{{couponCodeOrFake}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"couponCodeOrFake\", pm.collectionVariables.get(\"couponCode\") || \"NOTAREALCODE\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const expected = pm.collectionVariables.get(\"couponCode\") ? 200 : 404;",
+                  "pm.test(\"Status is \" + expected, () => pm.response.to.have.status(expected));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 - AI Chat",
+      "description": "AI shopping assistant. The response is a **Server-Sent Events** stream (`text/event-stream`), not JSON. Each event is `data: {\"type\": \"token\" | \"done\" | \"error\", ...}`. Token events carry the reply text. The final `done` event carries `products`, `cartProducts` and `compareProducts`.\n\nIn the Postman app the events appear one by one in the response pane.",
+      "item": [
+        {
+          "name": "Chat - Product Search",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "chat"
+              ]
+            },
+            "description": "**Auth:** none\n\n**Body:** `message` (string), `sessionId` (any string; the last 12 turns of history are kept per session for 1 hour).\n\n`400` if either field is missing.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"message\": \"Show me some electronics under $300\",\n    \"sessionId\": \"{{chatSessionId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"chatSessionId\")) pm.collectionVariables.set(\"chatSessionId\", \"postman-\" + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"SSE stream\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/event-stream\"));",
+                  "pm.test(\"has a done event\", () => pm.expect(pm.response.text()).to.include('\"type\":\"done\"'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat - Greeting",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "chat"
+              ]
+            },
+            "description": "**Auth:** none\n\nGreeting intent: canned reply, no product lookup.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"message\": \"hello!\",\n    \"sessionId\": \"{{chatSessionId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat - Missing message (negative)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/chat",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "chat"
+              ]
+            },
+            "description": "**Auth:** none\n\nValidation error example.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"sessionId\": \"{{chatSessionId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"message\", () => pm.expect(pm.response.json().message).to.eql(\"Message is required\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 - Admin",
+      "description": "Admin-only routes. They need a user with `role: \"admin\"` (set it in MongoDB; there is no API for promoting a user).\n\nSet `adminEmail` / `adminPassword` in the environment. If they are empty, every request in this folder is skipped. **Admin Login** replaces the regular user's cookies.\n\nThe Create → Update → Toggle → Delete requests clean up after themselves.",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "**Auth:** none\n\nLogs in as the admin from the environment.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{adminEmail}}\",\n    \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.unset(\"adminLoggedIn\");",
+                  "if (!pm.environment.get(\"adminEmail\") || !pm.environment.get(\"adminPassword\")) {",
+                  "    console.log(\"No admin credentials in environment - skipping admin folder.\");",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"role is admin\", () => pm.expect(pm.response.json().role).to.eql(\"admin\"));",
+                  "if (pm.response.code === 200 && pm.response.json().role === \"admin\") pm.collectionVariables.set(\"adminLoggedIn\", \"1\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Products (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ]
+            },
+            "description": "**Auth:** admin\n\nSame as the public list, but admin-gated. `403 Access denied - Admin only` for regular users."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"adminLoggedIn\")) {",
+                  "    console.log(\"Skipping admin request - set adminEmail/adminPassword in the environment to run it.\");",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products"
+              ]
+            },
+            "description": "**Auth:** admin\n\n**Body:** `name`, `description`, `price`, `category`, `image` (base64 data URI **or** an image URL; it is uploaded to Cloudinary), `sizes` (optional, e.g. `[\"S\",\"M\"]`), `shoeSizes` (optional, e.g. `[\"UK 8\"]`).\n\nAlso queues a Pinecone embedding for AI search. Returns `201` with the product.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Postman Test Product\",\n    \"description\": \"Created from the Postman collection - safe to delete.\",\n    \"price\": 19.99,\n    \"category\": \"accessories\",\n    \"image\": \"https://res.cloudinary.com/demo/image/upload/sample.jpg\",\n    \"sizes\": [],\n    \"shoeSizes\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"adminLoggedIn\")) {",
+                  "    console.log(\"Skipping admin request - set adminEmail/adminPassword in the environment to run it.\");",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"createdProductId\", pm.response.json()._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{createdProductId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{createdProductId}}"
+              ]
+            },
+            "description": "**Auth:** admin\n\nPartial update: omitted fields keep their current values. A new `image` replaces the old one on Cloudinary.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"price\": 24.99,\n    \"description\": \"Updated from Postman.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"adminLoggedIn\")) {",
+                  "    console.log(\"Skipping admin request - set adminEmail/adminPassword in the environment to run it.\");",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"price updated\", () => pm.expect(pm.response.json().price).to.eql(24.99));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Toggle Featured",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{createdProductId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{createdProductId}}"
+              ]
+            },
+            "description": "**Auth:** admin\n\nFlips `isFeatured` and refreshes the `featured_products` Redis cache. No body."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"adminLoggedIn\")) {",
+                  "    console.log(\"Skipping admin request - set adminEmail/adminPassword in the environment to run it.\");",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"now featured\", () => pm.expect(pm.response.json().isFeatured).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Toggle Featured (back)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{createdProductId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{createdProductId}}"
+              ]
+            },
+            "description": "**Auth:** admin\n\nToggles the flag back so the featured cache stays clean."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"adminLoggedIn\")) {",
+                  "    console.log(\"Skipping admin request - set adminEmail/adminPassword in the environment to run it.\");",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{createdProductId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "products",
+                "{{createdProductId}}"
+              ]
+            },
+            "description": "**Auth:** admin\n\nDeletes the product, its Cloudinary image and its Pinecone vector."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"adminLoggedIn\")) {",
+                  "    console.log(\"Skipping admin request - set adminEmail/adminPassword in the environment to run it.\");",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "analytics"
+              ]
+            },
+            "description": "**Auth:** admin\n\n`{ analyticsData: { users, products, totalSales, totalRevenue }, dailySalesData: [{ date, sales, revenue }] }` covering the last 7 days."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"adminLoggedIn\")) {",
+                  "    console.log(\"Skipping admin request - set adminEmail/adminPassword in the environment to run it.\");",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"has analyticsData\", () => pm.expect(pm.response.json()).to.have.property(\"analyticsData\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "08 - Logout",
+      "description": "Ends the session. Run last.",
+      "item": [
+        {
+          "name": "Admin Route as Regular User (negative)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "analytics"
+              ]
+            },
+            "description": "**Auth:** accessToken cookie (non-admin)\n\nShows the `403 Access denied - Admin only` response. Skipped when the admin folder is logged in."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.collectionVariables.get(\"adminLoggedIn\")) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "**Auth:** refreshToken cookie (optional)\n\nDeletes the refresh token from Redis and clears both cookies."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.unset(\"adminLoggedIn\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Profile after Logout (negative)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "profile"
+              ]
+            },
+            "description": "**Auth:** none (expects 401)\n\nShows the `401 Unauthorized - No access token provided` response."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test(\"Response time < 15s\", () => pm.expect(pm.response.responseTime).to.be.below(15000));"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "testName",
+      "value": "Postman Tester"
+    },
+    {
+      "key": "testEmail",
+      "value": ""
+    },
+    {
+      "key": "testPassword",
+      "value": "Luxe-Postman-2026!"
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "productId",
+      "value": ""
+    },
+    {
+      "key": "productName",
+      "value": ""
+    },
+    {
+      "key": "productPrice",
+      "value": "0"
+    },
+    {
+      "key": "productImage",
+      "value": ""
+    },
+    {
+      "key": "productSize",
+      "value": ""
+    },
+    {
+      "key": "category",
+      "value": "electronics"
+    },
+    {
+      "key": "stripeSessionId",
+      "value": ""
+    },
+    {
+      "key": "checkoutUrl",
+      "value": ""
+    },
+    {
+      "key": "couponCode",
+      "value": ""
+    },
+    {
+      "key": "chatSessionId",
+      "value": ""
+    },
+    {
+      "key": "createdProductId",
+      "value": ""
+    },
+    {
+      "key": "adminLoggedIn",
+      "value": ""
+    }
+  ]
+}
